@@ -5,7 +5,9 @@ import { AssetData } from "../store/priceStore";
 
 export function Orders({ trade }: { trade: Record<string, AssetData> }) {
 	const [orders, setOrders] = useState<Order[]>([]);
+	const balance = useUserStore((state) => state.balance);
 	const username = useUserStore((state) => state.username);
+
 	const fetchData = async () => {
 		const res = await axios.get(`http://localhost:3000/api/orders/${username}`);
 		setOrders(res.data.orders);
@@ -13,15 +15,15 @@ export function Orders({ trade }: { trade: Record<string, AssetData> }) {
 
 	useEffect(() => {
 		fetchData();
-	}, [username]);
+	}, [balance]);
+
 	function calculatePL(order: Order): number {
 		const tradeData = trade[order.asset];
-		if (!tradeData) return 0; 
+		if (!tradeData) return 0;
 
-		const currentPrice = tradeData.bid
+		const currentPrice = tradeData.bid;
 		const qty = order.qty;
 
-		
 		if (order.type === "buy") {
 			return (currentPrice - order.OpenPrice) * qty;
 		} else if (order.type === "sell") {
@@ -31,18 +33,27 @@ export function Orders({ trade }: { trade: Record<string, AssetData> }) {
 		return 0;
 	}
 	return (
-		<div className="rounded-xl shadow-lg w-full ">
-			<h2 className="text-lg font-semibold">Your Orders</h2>
-			<div className="h-[250px] overflow-y-auto space-y-2 ">
+		<div className="rounded-xl shadow-lg w-full border-black border bg-gray-900 p-4 mt-4">
+			<div className="flex items-center  p-2 rounded-md text-xs px-5 text-blue-400">
+				<div className="text-bold  w-1/6">S</div>
+				<div className="text-bold w-1/7">QT</div>
+				<div className="text-bold w-1/7">TYPE</div>
+				<div className="text-bold w-1/7">OP</div>
+				<div className="text-bold w-1/7">CP</div>
+				<div className="text-bold w-1/7">P/L</div>
+				<div className="text-bold w-1/7">-</div>
+			</div>
+			<div className="h-[250px] overflow-y-auto space-y-1 ">
 				{orders.map((order) => (
 					<OrderRow
+						id={order.id}
 						key={order.id}
 						asset={order.asset}
 						qty={order.qty}
 						OpenPrice={order.OpenPrice}
 						type={order.type}
 						CurrentPrice={trade[order.asset]?.bid}
-						pl={calculatePL(order) }
+						pl={calculatePL(order)}
 					/>
 				))}
 			</div>
@@ -51,6 +62,7 @@ export function Orders({ trade }: { trade: Record<string, AssetData> }) {
 }
 
 function OrderRow({
+	id,
 	asset,
 	qty,
 	OpenPrice,
@@ -58,6 +70,7 @@ function OrderRow({
 	pl,
 	type,
 }: {
+	id: number;
 	asset: string;
 	qty: number;
 	OpenPrice: number;
@@ -65,19 +78,38 @@ function OrderRow({
 	pl: number;
 	type: "buy" | "sell";
 }) {
+    const username = useUserStore((state) => state.username);
+    const setBalance = useUserStore((state) => state.setBalance);
+	async function handleClose(id:number) {
+        try{
+            const res = await axios.post("http://localhost:3000/api/order/close", {
+                orderID:id,
+                username
+            });
+            setBalance(res.data.user.balance);
+        }catch(err){
+            console.error(err);
+        }
+		// Close the order
+	}
 	return (
-		<div className="flex items-center  p-2 rounded-md bg-black text-xs px-5">
+		<div className="flex items-center  p-2 border-b border-gray-950 text-xs px-5 ">
 			<div className="text-bold text-yellow-300 w-1/6">{asset}</div>
-			<div className="text-bold w-1/6">
-				{qty}
-
-				{/* {CurrentPrice}
-                {pl} */}
+			<div className="text-bold w-1/7">{qty}</div>
+			<div className="text-bold w-1/7">{type == "buy" ? "Buy" : "Sell"}</div>
+			<div className="text-bold w-1/7">{OpenPrice}</div>
+			<div className="text-bold w-1/7">{CurrentPrice}</div>
+			<div
+				className={`text-bold w-1/7 ${
+					pl < 0 ? "text-red-500" : "text-green-500"
+				}`}>
+				{Math.round(pl * 1000) / 1000}
 			</div>
-			<div className="text-bold w-1/6">{type == "buy" ? "Buy" : "Sell"}</div>
-			<div className="text-bold w-1/6">{OpenPrice}</div>
-			<div className="text-bold w-1/6">{CurrentPrice}</div>
-			<div className="text-bold w-1/6">{pl}</div>
+			<div className=" w-1/7  text-black ">
+				<button className=" bg-red-500 rounded px-2" onClick={() => handleClose(id)}>
+					Close
+				</button>
+			</div>
 		</div>
 	);
 }

@@ -230,12 +230,16 @@ app.post("/api/order/close", (req, res) => {
 		return res.status(404).json({ error: "Order not found" });
 	}
 	// close the order
+	if (order.status == "closed") {
+		return res.status(400).json({ error: "Order is already closed" });
+	}
 	if (order.type == "buy") {
-		const sellPrice = ASSETS[order.asset as keyof WsData]["bid"]!;
+        const asset = order.asset as keyof WsData;
+        const closePrice = ASSETS[asset]["bid"]!;
 		order.status = "closed";
-		user.balance.USD += order.qty * sellPrice;
-		user.balance[order.asset as keyof WsData]! -= order.qty;
-		return res.status(200).json({ message: "Order closed successfully", user });
+		user.balance.USD += order.qty * closePrice;
+		user.balance[asset] -= order.qty;
+		return res.status(200).json({ message: "Order closed successfully",  user });
 		// TODO: implement sell logic
 	} else {
 		// TODO: implement buy logic
