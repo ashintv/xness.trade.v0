@@ -122,14 +122,14 @@ app.get("/api/orders/", (req, res) => {
 app.post("/api/order/close", (req, res) => {});
 
 // TODO: /api/trades/:asset/:time
-app.get("/api/trades/:time", async (req, res) => {
-	const { time } = req.params;
+app.get("/api/trades/:asset/:time", async (req, res) => {
+	const { asset,  time } = req.params;
 
 	const table = `trades_${time}m`;
 
 	try {
 		const query = `SELECT * FROM ${table} WHERE asset = $1 ORDER BY timestamp ASC`;
-		const { rows } = await pool.query(query, ["BTCUSDT"]);
+		const { rows } = await pool.query(query, [asset]);
 		return res.json(rows);
 	} catch (error) {
 		console.error(error);

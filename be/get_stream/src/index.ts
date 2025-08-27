@@ -14,7 +14,17 @@ async function ConnectPubsub() {
 ConnectPubsub();
 const channel = "trades";
 
-const URL = "wss://stream.binance.com:9443/stream?streams=btcusdt@aggTrade";
+const URL =
+	"wss://stream.binance.com:9443/stream?streams=" +
+	[
+		"btcusdt@aggTrade", // BTCUSDT aggregated trades
+		"ethusdt@aggTrade", // ETHUSDT aggregated trades
+		"bnbusdt@aggTrade", // BNBUSDT aggregated trades
+		"xrpusdt@aggTrade", // XRPUSDT aggregated trades
+		"adausdt@aggTrade", // ADAUSDT aggregated trades
+	].join("/");
+
+	
 const BATCH_SIZE = 200;
 const batch: [timeStamp: string, asset: string, price: number][] = [];
 let curr = 0;
