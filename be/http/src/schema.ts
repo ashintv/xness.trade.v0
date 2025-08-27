@@ -1,0 +1,20 @@
+import { z } from "zod";
+const ASSETS = ["BTCUSDT", "ETHUSDT", "XRPUSDT"];
+
+ /*req = {
+        type: "buy" | "sell",
+        qty: number,
+        asset: string,
+        stopLoss?: number,
+        takeProfit?: number
+    }
+*/
+
+//add error messages
+export const orderSchema = z.object({
+	type: z.enum(["buy", "sell"],"invalid option"),
+	qty: z.number().min(1,"invalid quantity"),
+	asset: z.enum(ASSETS,"invalid asset"),
+	stopLoss: z.number().min(0,"invalid stop loss").optional(),
+	takeProfit: z.number().min(0,"invalid take profit").optional(),
+});
