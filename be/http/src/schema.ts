@@ -1,5 +1,5 @@
 import { z } from "zod";
-const ASSETS = ["BTCUSDT", "ETHUSDT", "XRPUSDT" , ];
+const ASSETS = ["BTCUSDT", "ETHUSDT", "XRPUSDT" , "ADAUSDT", "BNBUSDT"] ;
 
  /*req = {
         type: "buy" | "sell",

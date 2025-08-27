@@ -7,6 +7,9 @@ import { createClient } from "redis";
 const redisUrl = "redis://localhost:6370"; // replace with your Redis URL
 const publisher = createClient({ url: redisUrl });
 
+//helper
+const round2 = (num: number) => Math.round(num * 100) / 100;
+
 async function ConnectPubsub() {
 	await publisher.connect();
 	console.log("✅ Connected to Redis");
@@ -24,7 +27,7 @@ const URL =
 		"adausdt@aggTrade", // ADAUSDT aggregated trades
 	].join("/");
 
-	
+
 const BATCH_SIZE = 200;
 const batch: [timeStamp: string, asset: string, price: number][] = [];
 let curr = 0;
@@ -71,13 +74,18 @@ wss.on("message", async (event) => {
 		batch.length = 0; // clear the batch
 		curr = 0;
 	}
+	const price = parseFloat(parsed.data.p)
+	const ask = round2(price + 0.00001 * price);
+	const bid = round2(price - 0.00001 * price);
 
 	await publisher.publish(
 		channel,
 		JSON.stringify({
 			ts,
 			asset: parsed.data.s,
-			price: parseFloat(parsed.data.p),
+			price,
+			ask,
+			bid
 		})
 	);
 });

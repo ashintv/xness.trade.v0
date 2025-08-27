@@ -54,7 +54,7 @@ export function TradeChart({ data }: { data: Candle[] }) {
 		},
 	};
 	return (
-		<div className="bg-transparent w-full rounded-2xl shadow-sm  p-4">
+		<div className="bg-[#0d0d0d] w-full rounded-2xl shadow-sm   p-4">
 			{typeof window !== "undefined" && (
 				<Chart
 					options={options}

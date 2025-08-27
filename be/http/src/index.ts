@@ -12,11 +12,26 @@ let orderID = 1;
 app.use(express.json());
 
 const ASSETS: WsData = {
-	BTCUSDT: null,
-	ETHUSDT: null,
-	BNBUSDT: null,
-	XRPUSDT: null,
-	ADAUSDT: null,
+	BTCUSDT: {
+		ask: null,
+		bid: null,
+	},
+	ETHUSDT: {
+		ask: null,
+		bid: null,
+	},
+	BNBUSDT: {
+		ask: null,
+		bid: null,
+	},
+	XRPUSDT: {
+		ask: null,
+		bid: null,
+	},
+	ADAUSDT: {
+		ask: null,
+		bid: null,
+	},
 };
 
 //
@@ -29,8 +44,8 @@ async function connectSubscriber() {
 	console.log("✅ Connected to Redis Subscriber");
 	await subscriber.subscribe("trades", (message) => {
 		const data = JSON.parse(message);
-
-		ASSETS[data.asset as keyof WsData] = data.price;
+		ASSETS[data.asset as keyof WsData]["ask"] = data.ask;
+		ASSETS[data.asset as keyof WsData]["bid"] = data.bid;
 	});
 	console.log("READY TO TRADE !! Price updated");
 }
@@ -117,7 +132,9 @@ app.post("/api/signin", (req, res) => {
 	if (existingUser.password !== password) {
 		return res.status(401).json({ error: "Invalid password" });
 	}
-	return res.status(200).json({ message: "Signin successful" });
+	return res
+		.status(200)
+		.json({ username: existingUser.username, balance: existingUser.balance });
 });
 
 //should be verified using middleware
@@ -147,24 +164,32 @@ app.post("/api/order/open", (req, res) => {
 	}
 	// if its open for buy
 	if (parse.data.type === "buy") {
-		// check if has enough balance a
-		if (
-			user.balance.USD! <
-			parse.data.qty * ASSETS[parse.data.asset as keyof WsData]!
-		) {
+		const asset = parse.data.asset as keyof WsData;
+		const askPrice = ASSETS[asset]["ask"]!;
+	
+		console.log(
+			`checking if ${user.balance.USD} < ${parse.data.qty * askPrice} ${
+				user.balance.USD < parse.data.qty * askPrice
+			}`
+		);
+
+		// check if has enough balance
+		if (user.balance.USD < parse.data.qty * askPrice) {
+			console.log("insufficient balance");
 			return res.status(400).json({ error: "Insufficient balance" });
 		}
 		// do operation
-		user.balance.USD -=
-			parse.data.qty * ASSETS[parse.data.asset as keyof WsData]!;
-		user.balance[parse.data.asset as keyof WsData] += parse.data.qty;
-		console.log(parse.data.qty * ASSETS[parse.data.asset as keyof WsData]!);
+
+		user.balance.USD -= parse.data.qty * askPrice;
+		user.balance[asset] += parse.data.qty;
+		console.log(askPrice * parse.data.qty);
 		orders.push({
 			id: orderID++,
 			username: user.username,
 			type: parse.data.type,
 			qty: parse.data.qty,
 			asset: parse.data.asset,
+			OpenPrice: askPrice,
 			status: "open",
 			createdAt: new Date(),
 			updatedAt: new Date(),
@@ -206,14 +231,15 @@ app.post("/api/order/close", (req, res) => {
 	}
 	// close the order
 	if (order.type == "buy") {
+		const sellPrice = ASSETS[order.asset as keyof WsData]["bid"]!;
 		order.status = "closed";
-		user.balance.USD += order.qty * ASSETS[order.asset as keyof WsData]!;
+		user.balance.USD += order.qty * sellPrice;
 		user.balance[order.asset as keyof WsData]! -= order.qty;
 		return res.status(200).json({ message: "Order closed successfully", user });
 		// TODO: implement sell logic
 	} else {
 		// TODO: implement buy logic
-        return res.status(500).json({ msge: "feature is not implemented" });
+		return res.status(500).json({ msge: "feature is not implemented" });
 	}
 });
 

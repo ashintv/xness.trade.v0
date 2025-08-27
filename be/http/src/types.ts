@@ -1,10 +1,15 @@
 
 export interface WsData {
-	BTCUSDT: number | null;
-	ETHUSDT: number | null;
-	BNBUSDT: number | null;
-	XRPUSDT: number | null;
-	ADAUSDT: number | null;
+	BTCUSDT: price 
+	ETHUSDT: price 
+	BNBUSDT: price 
+	XRPUSDT: price 
+	ADAUSDT: price 
+}
+
+interface price {
+    ask: number | null,
+    bid:number | null
 }
 
 
@@ -17,4 +22,5 @@ export interface Orders {
     status: "open" | "closed";
     createdAt: Date;
     updatedAt: Date;
+    OpenPrice: number;
 }
