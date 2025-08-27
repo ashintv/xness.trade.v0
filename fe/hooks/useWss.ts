@@ -5,31 +5,42 @@ export function useWss(url: string) {
 	const [data, setData] = useState<Record<string, AssetData>>({});
 	const prev = useRef<Record<string, AssetData>>({});
 
+	const round2 = (num: number) => Math.round(num * 100) / 100;
+
 	useEffect(() => {
 		const socket = new WebSocket(url);
-
 		socket.onmessage = (event) => {
 			const message = JSON.parse(event.data);
 			const asset = message?.asset;
 			const price = message?.price;
 			const ts = message?.ts;
 
-			const previousPrice = prev.current[asset]?.price || 0;
+			// calculate bid/ask (5% spread just as example)
+			const ask = round2(price + 0.05 * price);
+			const bid = round2(price - 0.05 * price);
+
+			const previousAsk = prev.current[asset]?.ask || 0;
+			const previousBid = prev.current[asset]?.bid || 0;
+
+			const curr = {
+				time: new Date(ts).toLocaleTimeString(),
+				asset,
+				price,
+				ask,
+				bid,
+				profitAsk: previousAsk ? ask - previousAsk : 0,
+				profitBid: previousBid ? bid - previousBid : 0,
+			};
 
 			setData((old) => ({
 				...old,
-				[asset]: {
-					time: new Date(ts).toLocaleTimeString(),
-					asset,
-					price,
-					profit: previousPrice ? price - previousPrice : 0,
-				},
+				[asset]: curr,
 			}));
 
-			// update the ref so it's persistent
+			// store calculated values for next tick
 			prev.current = {
 				...prev.current,
-				[asset]: message,
+				[asset]: curr
 			};
 		};
 
@@ -45,7 +56,10 @@ interface AssetData {
 	time: string;
 	asset: string;
 	price: number;
-	profit: number;
+	ask: number;
+	bid: number;
+	profitBid: number;
+	profitAsk: number;
 }
 
 interface WsData {

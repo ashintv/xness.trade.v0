@@ -3,19 +3,56 @@ import { Pool } from "pg";
 import cors from "cors";
 import jwt from "jsonwebtoken";
 import { orderSchema, userSchema } from "./schema";
+import { Orders, WsData } from "./types";
+import { createClient } from "redis";
 
 const app = express();
 app.use(cors());
+let orderID = 1;
+app.use(express.json());
+
+const ASSETS: WsData = {
+    BTCUSDT: null,
+    ETHUSDT: null,
+    BNBUSDT: null,
+    XRPUSDT: null,
+    ADAUSDT: null,
+}
+
+
+//
+const orders: Orders[] = [];
+
+
+//subscribe to redis channel
+const subscriber = createClient({ url: "redis://localhost:6370" }); 
+async function connectSubscriber() {
+	await subscriber.connect();
+	console.log("✅ Connected to Redis Subscriber");
+    await subscriber.subscribe("trades" , (message)=>{
+        const data = JSON.parse(message);
+        
+        ASSETS[data.asset as keyof WsData] = data.price;
+    });
+    console.log("READY TO TRADE !! Price updated");
+}
+connectSubscriber();
 
 //in memory user store
 const users: {
 	username: string;
 	password: string;
 	balance: {
-		usd: number;
-		btc: number;
+		USD: number;
+		BTCUSDT: number;
+		ETHUSDT: number;
+		BNBUSDT: number;
+		XRPUSDT: number;
+		ADAUSDT: number;
 	};
-}[] = [];
+}[] = [
+	{ username: "ashin", password: "password", balance: { USD: 5000, BTCUSDT: 0, ETHUSDT: 0, BNBUSDT: 0, XRPUSDT: 0, ADAUSDT: 0 } },
+];
 
 // pool
 const pool = new Pool({
@@ -52,7 +89,7 @@ app.post("/api/signup", (req, res) => {
 			btc: 0,
 		},
 	};
-	users.push(newUser);
+	// users.push(newUser);
 	return res.status(201).json({ message: "User created successfully" });
 });
 
@@ -91,32 +128,54 @@ app.get("/api/balance/:username", (req, res) => {
 });
 
 app.post("/api/order/open", (req, res) => {
-	/*req = {
-        type: "buy" | "sell",
-        qty: number,
-        asset: string,
-        stopLoss?: number,
-        takeProfit?: number
-    }
-     */
-
 	const parse = orderSchema.safeParse(req.body);
     if (!parse.success) {
         return res.status(400).json({ error: parse.error });
     }
+    // check if user exists //TODO:: actually done by middlewares
+    const user = users.find((user) => user.username === parse.data.username);
+    if (!user) {
+        return res.status(404).json({ error: "User not found" });
+    }
+    // check if has enough balance
+    if (user.balance.USD! < parse.data.qty * ASSETS[parse.data.asset as keyof WsData]!) {
+        return res.status(400).json({ error: "Insufficient balance" });
+    }
+    // do operation
+    user.balance.USD -= parse.data.qty * ASSETS[parse.data.asset as keyof WsData]!;
+    user.balance[parse.data.asset as keyof WsData] += parse.data.qty ;
+    console.log(parse.data.qty * ASSETS[parse.data.asset as keyof WsData]!);
+    orders.push({
+        id: orderID++,
+        username: user.username,
+        type: parse.data.type,
+        qty: parse.data.qty,
+        asset: parse.data.asset,
+        status: "open",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    });
+
+    if (!user) {
+        return res.status(404).json({ error: "User not found" });
+    }
 
 	return res.status(200).json({
-		orderId: 12345,
-		balance: {
-			usd: 5000,
-			btc: 0,
-		},
+		username: user.username,
+		balance: user.balance
 	});
 });
 
-app.get("/api/orders/", (req, res) => {
-	// Get all orders
-	return res.status(200).json({ orders: [] });
+app.get("/api/orders/:username", (req, res) => {
+	// Get all orders of user
+	const { username } = req.params;
+
+	if (!username) {
+		return res.status(400).json({ error: "Username is required" });
+	}
+
+	const userOrders = orders.filter((order) => order.username === username);
+	return res.status(200).json({ orders: userOrders });
 });
 
 app.post("/api/order/close", (req, res) => {});
