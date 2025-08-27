@@ -1,4 +1,4 @@
-'use client'
+"use client";
 import dynamic from "next/dynamic";
 import Chart from "react-apexcharts";
 export type Candle = {
@@ -19,38 +19,50 @@ export function TradeChart({ data }: { data: Candle[] }) {
 		chart: {
 			type: "candlestick",
 			height: 350,
-			toolbar: {
-				show: true,
+			background: "#0d0d0d", // deep black background
+			toolbar: { show: true },
+		},
+		theme: {
+			mode: "dark",
+			palette: "palette1",
+			monochrome: {
+				enabled: false, // disable monochrome since we want green/red
 			},
 		},
-		title: {
-			text: "Candlestick Chart",
-			align: "left",
+		plotOptions: {
+			candlestick: {
+				colors: {
+					upward: "#00ff88", // neon green for bullish
+					downward: "#ff2e2e", // bright red for bearish
+				},
+				wick: {
+					useFillColor: true, // wick uses same color as body
+				},
+			},
 		},
 		xaxis: {
 			type: "datetime",
+			labels: { style: { colors: "#aaa" } },
 		},
 		yaxis: {
-			tooltip: {
-				enabled: true,
-			},
+			tooltip: { enabled: true },
+			labels: { style: { colors: "#aaa" } },
 		},
-        theme: {
-            mode: 'dark',
-        }
-		
+		grid: {
+			borderColor: "#333",
+			strokeDashArray: 3,
+		},
 	};
 	return (
-		<div className="bg-white w-full rounded-2xl shadow-sm border border-gray-200 p-4">
-            {typeof window !== 'undefined' && (
-			<Chart
-				options={options}
-				series={series}
-				type="candlestick"
-				height={350}
-	
-			/>
-            )}
+		<div className="bg-transparent w-full rounded-2xl shadow-sm  p-4">
+			{typeof window !== "undefined" && (
+				<Chart
+					options={options}
+					series={series}
+					type="candlestick"
+					height={350}
+				/>
+			)}
 		</div>
 	);
 }

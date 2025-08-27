@@ -2,7 +2,7 @@ import express from "express";
 import { Pool } from "pg";
 import cors from "cors";
 import jwt from "jsonwebtoken";
-import { orderSchema } from "./schema";
+import { orderSchema, userSchema } from "./schema";
 
 const app = express();
 app.use(cors());
@@ -30,14 +30,12 @@ app.use(express.json());
 const port = 3000;
 
 app.post("/api/signup", (req, res) => {
-	const { username, password } = req.body;
-
-	// Basic validation
-	if (!username || !password) {
-		return res
-			.status(400)
-			.json({ error: "Username and password are required" });
+	const parse = userSchema.safeParse(req.body);
+	if (!parse.success) {
+		return res.status(400).json({ error: parse.error });
 	}
+
+	const { username, password } = parse.data;
 
 	// Check if user already exists
 	const existingUser = users.find((user) => user.username === username);
@@ -59,13 +57,12 @@ app.post("/api/signup", (req, res) => {
 });
 
 app.post("/api/signin", (req, res) => {
-	const { username, password } = req.body;
-
-	if (!username || !password) {
-		return res
-			.status(400)
-			.json({ error: "Username and password are required" });
+	const parse = userSchema.safeParse(req.body);
+	if (!parse.success) {
+		return res.status(400).json({ error: parse.error });
 	}
+	const { username, password } = parse.data;
+
 
 	const existingUser = users.find((user) => user.username === username);
 	if (!existingUser) {
@@ -75,7 +72,6 @@ app.post("/api/signin", (req, res) => {
 	if (existingUser.password !== password) {
 		return res.status(401).json({ error: "Invalid password" });
 	}
-
 	return res.status(200).json({ message: "Signin successful" });
 });
 

@@ -18,3 +18,8 @@ export const orderSchema = z.object({
 	stopLoss: z.number().min(0,"invalid stop loss").optional(),
 	takeProfit: z.number().min(0,"invalid take profit").optional(),
 });
+
+export const userSchema = z.object({
+	username: z.string().min(2).max(100 ,"invalid username"),
+	password: z.string().min(6).max(100 ,"invalid password"),
+});
