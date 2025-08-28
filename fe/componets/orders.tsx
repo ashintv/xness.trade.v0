@@ -7,6 +7,7 @@ export function Orders({ trade }: { trade: Record<string, AssetData> }) {
 	const [orders, setOrders] = useState<Order[]>([]);
 	const balance = useUserStore((state) => state.balance);
 	const username = useUserStore((state) => state.username);
+	const [filter, setFilter] = useState<"open" | "closed" | "all">("open");
 
 	const fetchData = async () => {
 		const res = await axios.get(`http://localhost:3000/api/orders/${username}`);
@@ -41,21 +42,41 @@ export function Orders({ trade }: { trade: Record<string, AssetData> }) {
 				<div className="text-bold w-1/7">OP</div>
 				<div className="text-bold w-1/7">CP</div>
 				<div className="text-bold w-1/7">P/L</div>
-				<div className="text-bold w-1/7">-</div>
+				<div
+					className={`text-bold w-1/7 text-underline hover:cursor-pointer hover:text-yellow-300 ${
+						filter === "open" ? "text-blue-500" : "text-gray-500"
+					}`}>
+					<select
+						value={filter}
+						onChange={(e) =>
+							setFilter(e.target.value as "open" | "closed" | "all")
+						}>
+						<option value="open">Opened</option>
+						<option value="closed">Closed</option>
+						<option value="all">All</option>
+					</select>
+				</div>
 			</div>
+
 			<div className="h-[250px] overflow-y-auto space-y-1 ">
-				{orders.map((order) => (
-					<OrderRow
-						id={order.id}
-						key={order.id}
-						asset={order.asset}
-						qty={order.qty}
-						OpenPrice={order.OpenPrice}
-						type={order.type}
-						CurrentPrice={trade[order.asset]?.bid}
-						pl={calculatePL(order)}
-					/>
-				))}
+				{orders
+					.filter(
+						(order) =>
+							order.status === (filter === "all" ? order.status : filter)
+					)
+					.map((order) => (
+						<OrderRow
+							status={order.status}
+							id={order.id}
+							key={order.id}
+							asset={order.asset}
+							qty={order.qty}
+							OpenPrice={order.OpenPrice}
+							type={order.type}
+							CurrentPrice={trade[order.asset]?.bid}
+							pl={calculatePL(order)}
+						/>
+					))}
 			</div>
 		</div>
 	);
@@ -69,6 +90,7 @@ function OrderRow({
 	CurrentPrice,
 	pl,
 	type,
+	status,
 }: {
 	id: number;
 	asset: string;
@@ -77,19 +99,20 @@ function OrderRow({
 	CurrentPrice: number;
 	pl: number;
 	type: "buy" | "sell";
+	status: "open" | "closed";
 }) {
-    const username = useUserStore((state) => state.username);
-    const setBalance = useUserStore((state) => state.setBalance);
-	async function handleClose(id:number) {
-        try{
-            const res = await axios.post("http://localhost:3000/api/order/close", {
-                orderID:id,
-                username
-            });
-            setBalance(res.data.user.balance);
-        }catch(err){
-            console.error(err);
-        }
+	const username = useUserStore((state) => state.username);
+	const setBalance = useUserStore((state) => state.setBalance);
+	async function handleClose(id: number) {
+		try {
+			const res = await axios.post("http://localhost:3000/api/order/close", {
+				orderID: id,
+				username,
+			});
+			setBalance(res.data.user.balance);
+		} catch (err) {
+			console.error(err);
+		}
 		// Close the order
 	}
 	return (
@@ -106,7 +129,10 @@ function OrderRow({
 				{Math.round(pl * 1000) / 1000}
 			</div>
 			<div className=" w-1/7  text-black ">
-				<button className=" bg-red-500 rounded px-2" onClick={() => handleClose(id)}>
+				<button
+					disabled={status === "closed"}
+					className=" bg-red-500 rounded px-2 disabled:bg-gray-600 disabled:cursor-not-allowed"
+					onClick={() => handleClose(id)}>
 					Close
 				</button>
 			</div>
@@ -117,6 +143,7 @@ function OrderRow({
 interface Order {
 	id: number;
 	asset: string;
+	status: "open" | "closed";
 	type: "buy" | "sell";
 	qty: number;
 	price: number;
