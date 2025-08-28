@@ -1,6 +1,7 @@
 import { Dispatch, SetStateAction} from "react";
 import { useWss } from "../hooks/useWss";
-import { AssetData } from "../store/priceStore";
+import { Trade } from "../lib/types";
+
 
 export function Table({
 	setAsset,
@@ -9,10 +10,9 @@ export function Table({
 	setAsset: Dispatch<
 		SetStateAction<"BTCUSDT" | "ETHUSDT" | "BNBUSDT" | "XRPUSDT" | "ADAUSDT">
 	>;
-	trade: Record<string, AssetData>;
+	trade: Trade;
 }) {
 	
-
 	return (
 		<div className="w-full min-w-94 bg-gray-800 rounded-2xl p-4 shadow-lg overflow-y-auto">
 			<h2 className="text-sm font-bold text-white mb-4">📈 Live Prices</h2>

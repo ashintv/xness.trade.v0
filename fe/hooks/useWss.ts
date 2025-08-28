@@ -1,11 +1,13 @@
+import { Trade  } from './../lib/types';
 "use client";
 import { useEffect, useState, useRef } from "react";
-import { AssetData } from "../store/priceStore";
+import { AssetData } from "../lib/types";
+
 
 
 export function useWss(url: string) {
-	const [price, setPrice] = useState<Record<string, AssetData>>({});
-	const prev = useRef<Record<string, AssetData>>({});
+	const [price, setPrice] = useState<Trade>({});
+	const prev = useRef<Trade >({});
 	useEffect(() => {
 		const socket = new WebSocket(url);
 		socket.onmessage = (event) => {
@@ -15,10 +17,8 @@ export function useWss(url: string) {
 			const ts = message?.ts;
 			const ask = message?.ask;
 			const bid = message?.bid;
-
-			
-			const previousAsk = prev.current[asset]?.ask || 0;
-			const previousBid = prev.current[asset]?.bid || 0;
+			const previousAsk = prev.current?.[asset as keyof Trade]?.ask || 0;
+			const previousBid = prev.current?.[asset as keyof Trade]?.bid || 0;
 
 			const curr = {
 				time: new Date(ts).toLocaleTimeString(),

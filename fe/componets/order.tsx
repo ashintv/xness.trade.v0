@@ -14,7 +14,7 @@ export default function OrderForm({
 }) {
 	const [quantity, setQuantity] = useState(0.01);
 	const [leverage, setLeverage] = useState(1);
-	const [type, setType] = useState<"buy" | "sell">("buy");
+	const [type, setType] = useState<"long" | "short">("long");
 	const setBalance = useUserStore((state) => state.setBalance);
 	const username = useUserStore((state) => state.username);
 	const handleSubmit = async () => {
@@ -25,8 +25,6 @@ export default function OrderForm({
 			qty: quantity,
 			leverage,
 		});
-		console.log(res.data);
-		console.log(asset);
 		setBalance(res.data.balance);
 	};
 
@@ -36,7 +34,10 @@ export default function OrderForm({
 				<span className="text-gray-400">Asset:</span>
 				{asset}
 			</div>
-			{/* Quantity */}
+			<select className="w-full bg-blue-500 rounded-md p-3 flex justify-center" name="orderType" id="orderType" value={type} onChange={(e) => setType(e.target.value as "long" | "short")}>
+				<option value="long">Long / Buy</option>
+				<option value="short">Short / Sell</option>
+			</select>
 			<div>
 				<label className="block text-sm text-gray-400 mb-1">Quantity</label>
 				<div className="flex items-center bg-black rounded-md border border-gray-700">
@@ -82,7 +83,7 @@ export default function OrderForm({
 				</div>
 			</div>
 			<div className="text-sm text-gray-500">
-				Margin = {Math.round(((quantity * (type === "buy" ? ask : sell)) / leverage )* 100) / 100} USD
+				Margin = {Math.round(((quantity * (type === "long" ? ask : sell)) / leverage )* 100) / 100} USD
 			</div>
 
 			{/* Place Order */}

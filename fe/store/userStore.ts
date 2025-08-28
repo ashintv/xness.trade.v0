@@ -1,21 +1,9 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { UserstoreState } from "../lib/types";
 
-interface Balance {
-	USD: number;
-	BTCUSDT: number;
-	ETHUSDT: number;
-	BNBUSDT: number;
-	XRPUSDT: number;
-	ADAUSDT: number;
-}
 
-interface UserstoreState {
-	username: string | null;
-	setUsername: (username: string) => void;
-	balance: Balance;
-	setBalance: (balance: Balance) => void;
-}
+
 
 export const useUserStore = create<UserstoreState>()(
 	persist(
@@ -23,12 +11,8 @@ export const useUserStore = create<UserstoreState>()(
 			username: null,
 			setUsername: (username) => set({ username }),
 			balance: {
-				USD: 0,
-				BTCUSDT: 0,
-				ETHUSDT: 0,
-				BNBUSDT: 0,
-				XRPUSDT: 0,
-				ADAUSDT: 0,
+				tradable: 0,
+				locked: 0,
 			},
 			setBalance: (balance) => set({ balance }),
 		}),

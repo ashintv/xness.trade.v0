@@ -16,7 +16,7 @@ interface price {
 export interface Orders {
     id: number;
     username: string;
-    type: "buy" | "sell";
+    type: "long" | "short";
     qty: number;
     asset: string;
     status: "open" | "closed";
@@ -26,4 +26,5 @@ export interface Orders {
     ClosePrice?: number;
     pl?: number;
     margin: number;
+    leverage: number;
 }

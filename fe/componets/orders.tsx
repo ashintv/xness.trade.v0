@@ -1,37 +1,26 @@
 import { useEffect, useState } from "react";
 import { useUserStore } from "../store/userStore";
 import axios from "axios";
-import { AssetData } from "../store/priceStore";
+import { AssetData, Order, Trade } from "../lib/types";
+import { useOrderStore } from "../store/orderStore";
+import { useFetchOrders } from "../hooks/useFetchOrders";
 
-export function Orders({ trade }: { trade: Record<string, AssetData> }) {
-	const [orders, setOrders] = useState<Order[]>([]);
+export function Orders({ trade }: { trade:Trade }) {
+	
+	const orders = useOrderStore((state) => state.orders);
 	const balance = useUserStore((state) => state.balance);
 	const username = useUserStore((state) => state.username);
 	const [filter, setFilter] = useState<"open" | "closed" | "all">("open");
-
-	const fetchData = async () => {
-		const res = await axios.get(`http://localhost:3000/api/orders/${username}`);
-		setOrders(res.data.orders);
-		console.log(res.data.orders);
-	};
-
-	useEffect(() => {
-		const interval = setInterval(() => {
-			fetchData();
-		}, 1000);
-		return () => clearInterval(interval);
-	}, [balance]);
+	useFetchOrders({ username , balance });
 
 	function calculatePL(order: Order): number {
-		const tradeData = trade[order.asset];
+		const tradeData = trade[order.asset as keyof Trade];
 		if (!tradeData) return 0;
-
 		const currentPrice = tradeData.bid;
 		const qty = order.qty;
-
-		if (order.type === "buy") {
+		if (order.type === "long") {
 			return (currentPrice - order.OpenPrice) * qty;
-		} else if (order.type === "sell") {
+		} else if (order.type === "short") {
 			return (order.OpenPrice - currentPrice) * qty;
 		}
 
@@ -62,7 +51,7 @@ export function Orders({ trade }: { trade: Record<string, AssetData> }) {
 				</div>
 			</div>
 
-			<div className="h-[250px] overflow-y-auto space-y-1 ">
+			<div className="h-[200px] overflow-y-auto space-y-1 ">
 				{orders
 					.filter(
 						(order) =>
@@ -77,8 +66,10 @@ export function Orders({ trade }: { trade: Record<string, AssetData> }) {
 							qty={order.qty}
 							OpenPrice={order.OpenPrice}
 							type={order.type}
-							CurrentPrice={filter=='closed'?order.ClosePrice:trade[order.asset]?.bid}
-							pl={filter=='closed'?order.pl:calculatePL(order)}
+							CurrentPrice={
+								filter == "closed" ? order.ClosePrice : trade[order.asset as keyof Trade]?.bid!
+							}
+							pl={filter == "closed" ? order.pl : calculatePL(order)}
 						/>
 					))}
 			</div>
@@ -102,7 +93,7 @@ function OrderRow({
 	OpenPrice: number;
 	CurrentPrice: number;
 	pl: number;
-	type: "buy" | "sell";
+	type: "long" | "short";
 	status: "open" | "closed";
 }) {
 	const username = useUserStore((state) => state.username);
@@ -123,7 +114,7 @@ function OrderRow({
 		<div className="flex items-center  p-2 border-b border-gray-950 text-xs px-5 ">
 			<div className="text-bold text-yellow-300 w-1/6">{asset}</div>
 			<div className="text-bold w-1/7">{qty}</div>
-			<div className="text-bold w-1/7">{type == "buy" ? "Buy" : "Sell"}</div>
+			<div className="text-bold w-1/7">{type == "long" ? "Long" : "Short"}</div>
 			<div className="text-bold w-1/7">{OpenPrice}</div>
 			<div className="text-bold w-1/7">{CurrentPrice}</div>
 			<div
@@ -144,14 +135,3 @@ function OrderRow({
 	);
 }
 
-interface Order {
-	id: number;
-	asset: string;
-	status: "open" | "closed";
-	type: "buy" | "sell";
-	qty: number;
-	price: number;
-	OpenPrice: number;
-	ClosePrice: number;
-	pl: number;
-}

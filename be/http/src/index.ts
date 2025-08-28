@@ -52,30 +52,28 @@ async function connectSubscriber() {
 				const asset = order.asset as keyof WsData;
 				const askPrice = ASSETS[asset]["ask"];
 				const bidPrice = ASSETS[asset]["bid"];
-				if (order.type === "buy" && bidPrice) {
-					const pNl = (bidPrice - order.OpenPrice )* order.qty;
-					if (pNl <= -1 * order.margin * 0.95) {
-						order.status = "closed";
-						order.ClosePrice = bidPrice;
-						order.pl = -pNl;
+				let pNl = 0;
+				order.type === "long"
+					? (pNl = (bidPrice! - order.OpenPrice) * order.qty) * order.leverage
+					: (pNl = (order.OpenPrice - askPrice!) * order.qty) * order.leverage;
+				if (pNl <= -order.margin * 0.95) {
+		
+					order.status = "closed";
+					order.ClosePrice = order.type === "long" ? bidPrice! : askPrice!;
+					order.pl = pNl;
 
-						for (const user of users) {
-							if (user.username === order.username) {
-								user.balance[asset] -= order.qty;
-								user.balance.USD += pNl + order.margin; ;
-								console.log(`User ${user.username} new balance: ${(user.balance)}`);
-								break;
-							}
-						}
-						console.log(`Order closed: ${JSON.stringify(order)} LIQUIDATED!!!!!`);
-						console.log(`Open Price (Buyed for): ${order.OpenPrice} , current Spot Price: ${bidPrice}`);
-						console.log(`PNL: ${pNl}`);
-						console.log(`Liquidation Price: ${order.ClosePrice}`);
+					const user = users.find((u) => u.username === order.username);
+					if (user) {
+						user.balance.locked -= order.margin;
+						user.balance.tradable += order.margin + pNl;
+						console.log(`User ${user.username} new balance: ${user.balance}`);
 					}
-					// } else if (order.type === "sell" && bidPrice) {
-					// 	order.OpenPrice = bidPrice;
-					// 	order.margin = (order.qty * bidPrice) / order.leverage;
-					// }
+
+					console.log(`Order closed: ${JSON.stringify(order)} LIQUIDATED!!!!!`);
+					console.log(
+						`Open Price: ${order.OpenPrice}, Spot Price: ${order.ClosePrice}`
+					);
+					console.log(`PNL: ${pNl}`);
 				}
 			}
 		});
@@ -89,24 +87,16 @@ const users: {
 	username: string;
 	password: string;
 	balance: {
-		USD: number;
-		BTCUSDT: number;
-		ETHUSDT: number;
-		BNBUSDT: number;
-		XRPUSDT: number;
-		ADAUSDT: number;
+		tradable: number;
+		locked: number;
 	};
 }[] = [
 	{
 		username: "ashin",
 		password: "password",
 		balance: {
-			USD: 5000,
-			BTCUSDT: 0,
-			ETHUSDT: 0,
-			BNBUSDT: 0,
-			XRPUSDT: 0,
-			ADAUSDT: 0,
+			tradable: 5000,
+			locked: 0,
 		},
 	},
 ];
@@ -196,24 +186,23 @@ app.post("/api/order/open", (req, res) => {
 		return res.status(404).json({ error: "User not found" });
 	}
 	// if its open for buy
-	if (parse.data.type === "buy") {
-		const asset = parse.data.asset as keyof WsData;
+	const asset = parse.data.asset as keyof WsData;
+	if (parse.data.type === "long") {
 		const askPrice = ASSETS[asset]["ask"]!;
 		const margin = (parse.data.qty * askPrice) / parse.data.leverage;
 		// check if has enough balance
-		if (user.balance.USD <= margin) {
+		if (user.balance.tradable <= margin) {
 			console.log("insufficient balance");
 			return res.status(400).json({ error: "Insufficient balance" });
 		}
 		// do operation
 
-		user.balance.USD -= margin;
-		user.balance[asset] += parse.data.qty;
-		console.log(askPrice * parse.data.qty);
+		user.balance.tradable -= margin;
+		user.balance.locked += margin;
 		orders.push({
 			id: orderID++,
 			username: user.username,
-			type: 'buy',
+			type: "long",
 			qty: parse.data.qty,
 			asset: parse.data.asset,
 			OpenPrice: askPrice,
@@ -221,14 +210,34 @@ app.post("/api/order/open", (req, res) => {
 			createdAt: new Date(),
 			updatedAt: new Date(),
 			margin,
+			leverage: parse.data.leverage,
 		});
 		return res.status(200).json({
 			username: user.username,
 			balance: user.balance,
 		});
-	} else {
-		//TODO create selll
-		return res.status(500).json({ msge: "feature is not implemented" });
+	} else if (parse.data.type === "short") {
+		const bidPrice = ASSETS[asset]["bid"]!;
+		const margin = (parse.data.qty * bidPrice) / parse.data.leverage;
+		user.balance.tradable -= margin;
+		user.balance.locked += margin;
+		orders.push({
+			id: orderID++,
+			username: user.username,
+			type: "short",
+			qty: parse.data.qty,
+			asset: parse.data.asset,
+			OpenPrice: bidPrice,
+			status: "open",
+			createdAt: new Date(),
+			updatedAt: new Date(),
+			margin,
+			leverage: parse.data.leverage,
+		});
+		return res.status(200).json({
+			username: user.username,
+			balance: user.balance,
+		});
 	}
 });
 
@@ -261,20 +270,31 @@ app.post("/api/order/close", (req, res) => {
 	if (order.status == "closed") {
 		return res.status(400).json({ error: "Order is already closed" });
 	}
-	if (order.type == "buy") {
-		const asset = order.asset as keyof WsData;
+	const asset = order.asset as keyof WsData;
+	if (order.type == "long") {
 		const closePrice = ASSETS[asset]["bid"]!;
+
 		order.status = "closed";
 		order.updatedAt = new Date();
 		order.ClosePrice = closePrice;
-		order.pl =
-			Math.round((closePrice - order.OpenPrice) * order.qty * 100) / 100;
-		user.balance.USD += order.qty * closePrice;
-		user.balance[asset] -= order.qty;
+
+		const pnl = (closePrice - order.OpenPrice) * order.qty * order.leverage;
+		order.pl = pnl;
+		user.balance.locked -= order.margin;
+		user.balance.tradable += order.margin + pnl;
+
 		return res.status(200).json({ message: "Order closed successfully", user });
-	} else {
-		// TODO: implement buy logic
-		return res.status(500).json({ msge: "feature is not implemented" });
+	} else if (order.type == "short") {
+		const closePrice = ASSETS[asset]["ask"]!;
+		order.status = "closed";
+		order.updatedAt = new Date();
+		order.ClosePrice = closePrice;
+
+		const pnl = (order.OpenPrice - closePrice) * order.qty * order.leverage;
+		order.pl = pnl;
+		user.balance.locked -= order.margin;
+		user.balance.tradable += order.margin + pnl;
+		return res.status(200).json({ message: "Order closed successfully", user });
 	}
 });
 

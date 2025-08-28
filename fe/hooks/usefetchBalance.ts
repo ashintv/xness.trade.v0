@@ -8,13 +8,11 @@ export function useFetchBalance() {
     async function fetchData() {
         const response = await axios.get(`http://localhost:3000/api/balance/${username}`);
         setBalance(response.data.balance);
-        
     }
-
     useEffect(() => {
         const interval = setInterval(() => {
             fetchData();
-        }, 3000);
+        }, 1000);
         return () => clearInterval(interval);
     }, []);
 }

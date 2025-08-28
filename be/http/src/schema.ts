@@ -13,7 +13,7 @@ const ASSETS = ["BTCUSDT", "ETHUSDT", "XRPUSDT" , "ADAUSDT", "BNBUSDT"] ;
 //add error messages
 export const orderSchema = z.object({
     username: z.string().min(2).max(100 ,"invalid username"),
-	type: z.enum(["buy", "sell"],"invalid option"),
+	type: z.enum(["long", "short"],"invalid option"),
 	qty: z.number("invalid quantity"),
 	asset: z.enum(ASSETS,"invalid asset"),
 	stopLoss: z.number().min(0,"invalid stop loss").optional(),

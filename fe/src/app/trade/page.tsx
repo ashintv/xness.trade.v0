@@ -30,23 +30,6 @@ export default function Dashboard() {
 	const Userbalance = useUserStore((state) => state.balance);
 	useFetchBalance();
 	const trade = useWss("ws://localhost:8080");
-	useEffect(() => {
-		console.log(Userbalance)
-	}, [Userbalance]);
-
-	function calculateBalance(): number {
-		// Calculate the total balance from the user balance store
-		let currentBalance = 0;
-		for (const _key in Userbalance) {
-			const key = _key as keyof typeof Userbalance;
-			if (key === "USD") {
-				currentBalance += Userbalance[key];
-				continue;
-			}
-			currentBalance += Userbalance[key] * trade[key]?.bid || 0;
-		}
-		return currentBalance;
-	}
 
 	return (
 		<div className="w-screen h-screen flex flex-col bg-gray-950 text-white">
@@ -56,7 +39,7 @@ export default function Dashboard() {
 					<h1 className="text-xl font-bold">📈 Trading Dashboard</h1>
 					<div className="flex w-xs items-center gap-1">
 						<p className="text-yellow-400 font-bold">Balance:</p>
-						<Balance Tradable={Userbalance.USD} Actual={calculateBalance()} />
+						<Balance trade={trade} />
 					</div>
 				</div>
 				<div className="flex gap-4">
@@ -79,13 +62,21 @@ export default function Dashboard() {
 						<Table setAsset={setAsset} trade={trade} />
 					</div>
 					<div className=" h-1/2">
-						<OrderForm asset={asset} ask={trade[asset]?.ask} sell={trade[asset]?.bid} />
+						<OrderForm
+							asset={asset}
+							ask={trade[asset]?.ask!}
+							sell={trade[asset]?.bid!}
+						/>
 					</div>
 				</div>
 
 				{/* Right: Chart */}
 				<div className="flex-1 bg-gray-800 rounded-xl p-4 shadow-lg">
-					{loading ? <p>Loading...</p> : <TradeChart timeFrame={Number(timeFrame)} asset={asset} />}
+					{loading ? (
+						<p>Loading...</p>
+					) : (
+						<TradeChart timeFrame={Number(timeFrame)} asset={asset} />
+					)}
 					<Orders trade={trade} />
 				</div>
 			</div>
