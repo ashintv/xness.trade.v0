@@ -1,6 +1,6 @@
 "use client";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Chart from "react-apexcharts";
 export type Candle = {
 	x: string; // timestamp (ISO string, number, or Date)
@@ -41,8 +41,11 @@ export function TradeChart({
 		const interval = setInterval(() => {
 			fetchData();
 		}, 10000);
-
 		return () => clearInterval(interval);
+	}, []);
+
+	useEffect(() => {
+		fetchData();
 	}, [asset, timeFrame]);
 
 	const series = [

@@ -8,7 +8,6 @@ export function useFetchOrders({ username  }: { username: string | null , balanc
 	const fetchData = async () => {
 		const res = await axios.get(`http://localhost:3000/api/orders/${username}`);
 		setOrders(res.data.orders);
-		console.log(res.data.orders);
 	};
 
 	useEffect(() => {
