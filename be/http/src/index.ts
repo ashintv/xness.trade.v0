@@ -46,29 +46,27 @@ async function connectSubscriber() {
 		const data = JSON.parse(message);
 		ASSETS[data.asset as keyof WsData]["ask"] = data.ask;
 		ASSETS[data.asset as keyof WsData]["bid"] = data.bid;
-
 		orders.forEach((order) => {
 			if (order.status === "open") {
 				const asset = order.asset as keyof WsData;
 				const askPrice = ASSETS[asset]["ask"];
 				const bidPrice = ASSETS[asset]["bid"];
 				let pNl = 0;
-				order.type === "long"
-					? (pNl = (bidPrice! - order.OpenPrice) * order.qty) * order.leverage
-					: (pNl = (order.OpenPrice - askPrice!) * order.qty) * order.leverage;
+				if (order.type === "long") {
+					pNl = (bidPrice! - order.OpenPrice) * order.qty * order.leverage;
+				} else {
+					pNl = (order.OpenPrice - askPrice!) * order.qty * order.leverage;
+				}
 				if (pNl <= -order.margin * 0.95) {
-		
 					order.status = "closed";
 					order.ClosePrice = order.type === "long" ? bidPrice! : askPrice!;
 					order.pl = pNl;
-
 					const user = users.find((u) => u.username === order.username);
 					if (user) {
 						user.balance.locked -= order.margin;
 						user.balance.tradable += order.margin + pNl;
 						console.log(`User ${user.username} new balance: ${user.balance}`);
 					}
-
 					console.log(`Order closed: ${JSON.stringify(order)} LIQUIDATED!!!!!`);
 					console.log(
 						`Open Price: ${order.OpenPrice}, Spot Price: ${order.ClosePrice}`
