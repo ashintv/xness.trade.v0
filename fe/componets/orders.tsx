@@ -12,10 +12,14 @@ export function Orders({ trade }: { trade: Record<string, AssetData> }) {
 	const fetchData = async () => {
 		const res = await axios.get(`http://localhost:3000/api/orders/${username}`);
 		setOrders(res.data.orders);
+		console.log(res.data.orders);
 	};
 
 	useEffect(() => {
-		fetchData();
+		const interval = setInterval(() => {
+			fetchData();
+		}, 1000);
+		return () => clearInterval(interval);
 	}, [balance]);
 
 	function calculatePL(order: Order): number {
@@ -73,8 +77,8 @@ export function Orders({ trade }: { trade: Record<string, AssetData> }) {
 							qty={order.qty}
 							OpenPrice={order.OpenPrice}
 							type={order.type}
-							CurrentPrice={trade[order.asset]?.bid}
-							pl={calculatePL(order)}
+							CurrentPrice={filter=='closed'?order.ClosePrice:trade[order.asset]?.bid}
+							pl={filter=='closed'?order.pl:calculatePL(order)}
 						/>
 					))}
 			</div>
@@ -148,4 +152,6 @@ interface Order {
 	qty: number;
 	price: number;
 	OpenPrice: number;
+	ClosePrice: number;
+	pl: number;
 }

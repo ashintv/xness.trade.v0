@@ -46,6 +46,39 @@ async function connectSubscriber() {
 		const data = JSON.parse(message);
 		ASSETS[data.asset as keyof WsData]["ask"] = data.ask;
 		ASSETS[data.asset as keyof WsData]["bid"] = data.bid;
+
+		orders.forEach((order) => {
+			if (order.status === "open") {
+				const asset = order.asset as keyof WsData;
+				const askPrice = ASSETS[asset]["ask"];
+				const bidPrice = ASSETS[asset]["bid"];
+				if (order.type === "buy" && bidPrice) {
+					const pNl = (bidPrice - order.OpenPrice )* order.qty;
+					if (pNl <= -1 * order.margin * 0.95) {
+						order.status = "closed";
+						order.ClosePrice = bidPrice;
+						order.pl = -pNl;
+
+						for (const user of users) {
+							if (user.username === order.username) {
+								user.balance[asset] -= order.qty;
+								user.balance.USD += pNl + order.margin; ;
+								console.log(`User ${user.username} new balance: ${(user.balance)}`);
+								break;
+							}
+						}
+						console.log(`Order closed: ${JSON.stringify(order)} LIQUIDATED!!!!!`);
+						console.log(`Open Price (Buyed for): ${order.OpenPrice} , current Spot Price: ${bidPrice}`);
+						console.log(`PNL: ${pNl}`);
+						console.log(`Liquidation Price: ${order.ClosePrice}`);
+					}
+					// } else if (order.type === "sell" && bidPrice) {
+					// 	order.OpenPrice = bidPrice;
+					// 	order.margin = (order.qty * bidPrice) / order.leverage;
+					// }
+				}
+			}
+		});
 	});
 	console.log("READY TO TRADE !! Price updated");
 }
@@ -166,33 +199,28 @@ app.post("/api/order/open", (req, res) => {
 	if (parse.data.type === "buy") {
 		const asset = parse.data.asset as keyof WsData;
 		const askPrice = ASSETS[asset]["ask"]!;
-	
-		console.log(
-			`checking if ${user.balance.USD} < ${parse.data.qty * askPrice} ${
-				user.balance.USD < parse.data.qty * askPrice
-			}`
-		);
-
+		const margin = (parse.data.qty * askPrice) / parse.data.leverage;
 		// check if has enough balance
-		if (user.balance.USD < parse.data.qty * askPrice) {
+		if (user.balance.USD <= margin) {
 			console.log("insufficient balance");
 			return res.status(400).json({ error: "Insufficient balance" });
 		}
 		// do operation
 
-		user.balance.USD -= parse.data.qty * askPrice;
+		user.balance.USD -= margin;
 		user.balance[asset] += parse.data.qty;
 		console.log(askPrice * parse.data.qty);
 		orders.push({
 			id: orderID++,
 			username: user.username,
-			type: parse.data.type,
+			type: 'buy',
 			qty: parse.data.qty,
 			asset: parse.data.asset,
 			OpenPrice: askPrice,
 			status: "open",
 			createdAt: new Date(),
 			updatedAt: new Date(),
+			margin,
 		});
 		return res.status(200).json({
 			username: user.username,
@@ -234,13 +262,16 @@ app.post("/api/order/close", (req, res) => {
 		return res.status(400).json({ error: "Order is already closed" });
 	}
 	if (order.type == "buy") {
-        const asset = order.asset as keyof WsData;
-        const closePrice = ASSETS[asset]["bid"]!;
+		const asset = order.asset as keyof WsData;
+		const closePrice = ASSETS[asset]["bid"]!;
 		order.status = "closed";
+		order.updatedAt = new Date();
+		order.ClosePrice = closePrice;
+		order.pl =
+			Math.round((closePrice - order.OpenPrice) * order.qty * 100) / 100;
 		user.balance.USD += order.qty * closePrice;
 		user.balance[asset] -= order.qty;
-		return res.status(200).json({ message: "Order closed successfully",  user });
-		// TODO: implement sell logic
+		return res.status(200).json({ message: "Order closed successfully", user });
 	} else {
 		// TODO: implement buy logic
 		return res.status(500).json({ msge: "feature is not implemented" });

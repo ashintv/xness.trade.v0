@@ -18,6 +18,7 @@ export const orderSchema = z.object({
 	asset: z.enum(ASSETS,"invalid asset"),
 	stopLoss: z.number().min(0,"invalid stop loss").optional(),
 	takeProfit: z.number().min(0,"invalid take profit").optional(),
+    leverage: z.number().min(1,"invalid leverage")
 });
 
 export const userSchema = z.object({

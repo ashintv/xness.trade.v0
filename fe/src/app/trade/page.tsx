@@ -8,6 +8,8 @@ import { useUserStore } from "../../../store/userStore";
 import OrderForm from "../../../componets/order";
 import { Orders } from "../../../componets/orders";
 import { useWss } from "../../../hooks/useWss";
+import { Balance } from "../../../componets/balance";
+import { useFetchBalance } from "../../../hooks/usefetchBalance";
 
 // Mock table data type
 type Trade = {
@@ -21,39 +23,30 @@ export default function Dashboard() {
 	const [asset, setAsset] = useState<
 		"BTCUSDT" | "ETHUSDT" | "BNBUSDT" | "XRPUSDT" | "ADAUSDT"
 	>("BTCUSDT");
-	const [data, setData] = useState<Candle[]>([]);
+
 	const [timeFrame, setTimeFrame] = useState<"1" | "5" | "15" | "60" | "1440">(
 		"1"
 	);
-	const Userbalance = useUserStore((state) => state.balance.USD);
-
-	async function fetchData() {
-		setLoading(true);
-		try {
-			const response = await fetch(
-				`http://localhost:3000/api/trades/${asset}/${timeFrame}`
-			);
-			const result = await response.json();
-
-			setData(
-				result.map((d: any) => ({
-					x: new Date(d.timestamp),
-					y: [d.open_price, d.high_price, d.low_price, d.close_price],
-				}))
-			);
-		} catch (error) {
-			console.error("Error fetching data:", error);
-		} finally {
-			setLoading(false);
-		}
-	}
-
-  const trade = useWss("ws://localhost:8080");
-	
-  
+	const Userbalance = useUserStore((state) => state.balance);
+	useFetchBalance();
+	const trade = useWss("ws://localhost:8080");
 	useEffect(() => {
-		fetchData();
-	}, [timeFrame, asset]);
+		console.log(Userbalance)
+	}, [Userbalance]);
+
+	function calculateBalance(): number {
+		// Calculate the total balance from the user balance store
+		let currentBalance = 0;
+		for (const _key in Userbalance) {
+			const key = _key as keyof typeof Userbalance;
+			if (key === "USD") {
+				currentBalance += Userbalance[key];
+				continue;
+			}
+			currentBalance += Userbalance[key] * trade[key]?.bid || 0;
+		}
+		return currentBalance;
+	}
 
 	return (
 		<div className="w-screen h-screen flex flex-col bg-gray-950 text-white">
@@ -63,7 +56,7 @@ export default function Dashboard() {
 					<h1 className="text-xl font-bold">📈 Trading Dashboard</h1>
 					<div className="flex w-xs items-center gap-1">
 						<p className="text-yellow-400 font-bold">Balance:</p>
-						<p>{Userbalance} USD</p>
+						<Balance Tradable={Userbalance.USD} Actual={calculateBalance()} />
 					</div>
 				</div>
 				<div className="flex gap-4">
@@ -77,11 +70,6 @@ export default function Dashboard() {
 							setTimeFrame(e.target.value as "1" | "5" | "15" | "60" | "1440");
 						}}
 					/>
-					<button
-						onClick={fetchData}
-						className="px-4 py-1 rounded-md bg-blue-600 hover:bg-blue-700">
-						Refresh
-					</button>
 				</div>
 			</nav>
 
@@ -91,13 +79,13 @@ export default function Dashboard() {
 						<Table setAsset={setAsset} trade={trade} />
 					</div>
 					<div className=" h-1/2">
-						<OrderForm asset={asset} />
+						<OrderForm asset={asset} ask={trade[asset]?.ask} sell={trade[asset]?.bid} />
 					</div>
 				</div>
 
 				{/* Right: Chart */}
 				<div className="flex-1 bg-gray-800 rounded-xl p-4 shadow-lg">
-					{loading ? <p>Loading...</p> : <TradeChart data={data}  />}
+					{loading ? <p>Loading...</p> : <TradeChart timeFrame={Number(timeFrame)} asset={asset} />}
 					<Orders trade={trade} />
 				</div>
 			</div>

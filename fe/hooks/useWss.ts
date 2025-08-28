@@ -16,7 +16,7 @@ export function useWss(url: string) {
 			const ask = message?.ask;
 			const bid = message?.bid;
 
-
+			
 			const previousAsk = prev.current[asset]?.ask || 0;
 			const previousBid = prev.current[asset]?.bid || 0;
 

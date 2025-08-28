@@ -23,4 +23,7 @@ export interface Orders {
     createdAt: Date;
     updatedAt: Date;
     OpenPrice: number;
+    ClosePrice?: number;
+    pl?: number;
+    margin: number;
 }
