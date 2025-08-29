@@ -60,11 +60,10 @@ export function TradeChart({
 		},
 		chart: {
 			type: "candlestick",
-			
+
 			height: 350,
 			background: "#0d0d0d", // deep black background
 			toolbar: { show: true },
-
 		},
 		theme: {
 			mode: "dark",
@@ -83,7 +82,6 @@ export function TradeChart({
 					useFillColor: true, // wick uses same color as body
 				},
 			},
-			
 		},
 		xaxis: {
 			type: "datetime",

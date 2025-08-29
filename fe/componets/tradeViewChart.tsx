@@ -1,88 +1,124 @@
+"use client";
+import axios from "axios";
+import {
+	CandlestickData,
+	CandlestickSeries,
+	createChart,
+	ISeriesApi,
+	UTCTimestamp,
+} from "lightweight-charts";
+import { useEffect, useRef, useState } from "react";
+import { useWss } from "../hooks/useWss";
 
-// import React, { useEffect, useRef } from "react";
-// import {
-// 	createChart,
-// 	IChartApi,
-// 	ISeriesApi,
-// 	CandlestickData,
-// 	CandlestickSeriesPartialOptions,
-// } from "lightweight-charts";
+export default function CandleChart() {
+	const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+	const chartContainerRef = useRef<HTMLDivElement>(null);
+	const lastCandleRef = useRef<Candle | null>(null);
+	const [pastData, setPastData] = useState<Candle[]>([]);
+	const [timeframeSec, setTimeframeSec] = useState<number>(60); // 1m by default
 
-// const CandleChart: React.FC = () => {
-// 	const chartContainerRef = useRef<HTMLDivElement | null>(null);
-// 	const chartRef = useRef<IChartApi | null>(null);
-// 	const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+	let lastCandle: Candle | null = null;
 
-// 	useEffect(() => {
-// 		if (!chartContainerRef.current) return;
+	// 🔹 Convert ISO timestamp to UTCTimestamp (seconds)
+	function toUTCTimestamp(isoString: string): UTCTimestamp {
+		return Math.floor(new Date(isoString).getTime() / 1000) as UTCTimestamp;
+	}
 
-// 		// Create chart instance
-// 		const chart = createChart(chartContainerRef.current, {
-// 			width: chartContainerRef.current.clientWidth,
-// 			height: 400,
-// 			layout: {
-// 				background: { color: "#ffffff" },
-// 				textColor: "#333",
-// 			},
-// 			grid: {
-// 				vertLines: { color: "#eee" },
-// 				horzLines: { color: "#eee" },
-// 			},
-// 			timeScale: {
-// 				borderColor: "#ccc",
-// 			},
-// 		});
+	// 🔹 Fetch past data from API
+	useEffect(() => {
+		async function fetchPastData() {
+			const response = await axios.get(
+				`http://localhost:3000/api/trades/BTCUSDT/${timeframeSec / 60}`
+			);
 
-// 		chartRef.current = chart;
+			setPastData(
+				response.data.map((t: any) => ({
+					time: toUTCTimestamp(t.timestamp),
+					open: t.open_price,
+					high: t.high_price,
+					low: t.low_price,
+					close: t.close_price,
+				}))
+			);
+		}
+		fetchPastData();
+	}, [timeframeSec]);
 
-// 		// ✅ Add Candlestick Series
-// 		const candleSeries = chart.addCandlestickSeries();
-// 		candleSeriesRef.current = candleSeries;
+	// 🔹 Initialize chart
+	useEffect(() => {
+		if (chartContainerRef.current && pastData.length > 0) {
+			const chart = createChart(chartContainerRef.current, createChartOption);
+			const candleSeries = chart.addSeries(CandlestickSeries, {
+				upColor: "#26a69a",
+				downColor: "#ef5350",
+				borderUpColor: "#26a69a",
+				borderDownColor: "#ef5350",
+				wickUpColor: "#26a69a",
+				wickDownColor: "#ef5350",
+			});
+			candleSeriesRef.current = candleSeries;
+			candleSeries.setData(pastData);
+			chart.timeScale().fitContent();
+			// set lastCandle to last historical candle
+			lastCandleRef.current = pastData[pastData.length - 1] || null;
+		}
+	}, [pastData]);
 
-// 		// Initial candles
-// 		const initialData: CandlestickData[] = [
-// 			{
-// 				time: "2025-08-28T09:30:00",
-// 				open: 120,
-// 				high: 130,
-// 				low: 115,
-// 				close: 125,
-// 			},
-// 			{
-// 				time: "2025-08-28T09:35:00",
-// 				open: 125,
-// 				high: 135,
-// 				low: 120,
-// 				close: 130,
-// 			},
-// 		];
-// 		candleSeries.setData(initialData);
+	// 🔹 WebSocket live trades
+	const liveData = useWss("ws://localhost:8080"); // expect: { BTCUSDT: { price, timestamp } }
+	useEffect(() => {
+		if (!liveData || !candleSeriesRef.current) return;
+		const trade = liveData.BTCUSDT;
+		if (!trade) return;
 
-// 		// Simulate live updates
-// 		let i = 0;
-// 		const interval = setInterval(() => {
-// 			i++;
-// 			const newCandle: CandlestickData = {
-// 				time: `2025-08-28T09:${40 + i}:00`, // ISO string or UNIX timestamp
-// 				open: 130,
-// 				high: 140 + i,
-// 				low: 125,
-// 				close: 135 + i,
-// 			};
+		const ts = Math.floor(
+			new Date(Date.now()).getTime() / 1000
+		) as UTCTimestamp;
+		const bucket = (Math.floor(ts / timeframeSec) *
+			timeframeSec) as unknown as UTCTimestamp;
 
-// 			// ✅ Updates if same time, appends if new
-// 			candleSeries.update(newCandle);
-// 		}, 3000);
+		console.log(lastCandleRef.current);
+		if (!lastCandleRef.current || lastCandleRef.current.time !== bucket) {
+			lastCandleRef.current = {
+				time: bucket,
+				open: trade.price,
+				high: trade.price,
+				low: trade.price,
+				close: trade.price,
+			};
+			candleSeriesRef.current.update(lastCandleRef.current as CandlestickData);
+		} else {
+			// 🔹 Update existing candle
+			lastCandleRef.current = {
+				...lastCandleRef.current,
+				close: trade.price,
+				high: Math.max(lastCandleRef.current.high, trade.price),
+				low: Math.min(lastCandleRef.current.low, trade.price),
+			};
+			candleSeriesRef.current.update(lastCandleRef.current as CandlestickData);
+		}
+	}, [liveData, timeframeSec]);
 
-// 		return () => {
-// 			clearInterval(interval);
-// 			chart.remove();
-// 		};
-// 	}, []);
+	return <div className="h-full w-full" ref={chartContainerRef}></div>;
+}
 
-// 	return (
-// 		<div ref={chartContainerRef} style={{ width: "100%", height: "400px" }} />
-// 	);
-// };
+// 🔹 Candle Type
+interface Candle {
+	time: UTCTimestamp;
+	open: number;
+	high: number;
+	low: number;
+	close: number;
+}
 
-// export default CandleChart;
+// 🔹 Chart Styling
+const createChartOption = {
+	layout: {
+		background: { color: "#222" },
+		textColor: "#DDD",
+	},
+	grid: {
+		vertLines: { color: "#444" },
+		horzLines: { color: "#444" },
+	},
+};
