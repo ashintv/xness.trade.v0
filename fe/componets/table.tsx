@@ -14,8 +14,8 @@ export function Table({
 }) {
 	
 	return (
-		<div className="w-full min-w-94 bg-gray-800 rounded-2xl p-4 shadow-lg overflow-y-auto">
-			<h2 className="text-sm font-bold text-white mb-4">📈 Live Prices</h2>
+		<div className="w-full min-w-94 rounded-2xl p-4 shadow-lg overflow-y-auto">
+			<h2 className="text-md font-bold text-white mb-4">📈 Live Prices</h2>
 
 			<div className="space-y-2">
 				{Object.values(trade).map((item) => (
@@ -31,7 +31,7 @@ export function Table({
 									| "ADAUSDT"
 							)
 						}
-						className="flex items-center justify-between px-2 py-1 rounded-xl bg-gray-900 hover:bg-gray-700 transition cursor-pointer">
+						className="flex items-center justify-between px-2 py-1 rounded hover:bg-gray-700 transition cursor-pointer">
 						{/* Asset name */}
 						<div className="text-xs font-semibold text-white">{item.asset}</div>
 

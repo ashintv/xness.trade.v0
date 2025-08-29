@@ -4,7 +4,7 @@ export function SelectAsset({ value, onChange }:{ value: string; onChange: (e: R
 				<select
 					value={value}
 					onChange={onChange}
-					className="bg-blue-800  border border-gray-700 rounded-md p-2">
+					className=" border border-gray-700 rounded-md p-2">
 					<option value="BTCUSDT">BTC/USDT</option>
 					<option value="ETHUSDT">ETH/USDT</option>
 					<option value="BNBUSDT">BNB/USDT</option>

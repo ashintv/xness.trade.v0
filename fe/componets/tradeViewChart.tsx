@@ -1,7 +1,6 @@
 "use client";
 import axios from "axios";
 import {
-	CandlestickData,
 	CandlestickSeries,
 	createChart,
 	IChartApi,
@@ -12,6 +11,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { useWss } from "../hooks/useWss";
 import { Trade } from "../lib/types";
+import { time } from "console";
 
 export default function CandleChart({
 	asset,
@@ -108,8 +108,13 @@ export default function CandleChart({
 				low: trade.price,
 				close: trade.price,
 			};
-			const lastBar = candleSeriesRef.current.dataByIndex(candleSeriesRef.current.data().length - 1);
-			if (candleSeriesRef.current && lastCandleRef.current.time >= lastBar?.time!) {
+			const lastBar = candleSeriesRef.current.dataByIndex(
+				candleSeriesRef.current.data().length - 1
+			);
+			if (
+				candleSeriesRef.current &&
+				lastCandleRef.current.time >= lastBar?.time!
+			) {
 				candleSeriesRef.current.update(lastCandleRef.current, false);
 			}
 		} else {
@@ -123,13 +128,15 @@ export default function CandleChart({
 			const lastBar = candleSeriesRef.current.dataByIndex(
 				candleSeriesRef.current.data().length - 1
 			);
-			if (candleSeriesRef.current && lastCandleRef.current.time >= lastBar?.time!) {
+			if (
+				candleSeriesRef.current &&
+				lastCandleRef.current.time >= lastBar?.time!
+			) {
 				candleSeriesRef.current.update(lastCandleRef.current, false);
 			}
-			
 		}
 
-		chartRef.current?.timeScale().scrollToPosition(15 ,true);
+		chartRef.current?.timeScale().scrollToPosition(15, true);
 	}, [liveData, timeframeSec]);
 
 	return <div className="h-full w-full" ref={chartContainerRef}></div>;
@@ -144,12 +151,25 @@ interface Candle {
 }
 
 const createChartOption = {
+	width: 960,
 	layout: {
-		background: { color: "#030712" },
+		background: { color: "#0a0a0a" },
 		textColor: "#DDD",
 	},
 	grid: {
-		vertLines: { color: "#444" },
-		horzLines: { color: "#444" },
+		vertLines: { color: "#1e2938" },
+		horzLines: { color: "#1e2938" },
+	},
+	timeScale: {
+		timeVisible: false,
+		seconds: false,
+		tickMarkFormatter: (time: number) => {
+			const date = new Date(time * 1000);
+			return date.toLocaleTimeString([], {
+				hour: "2-digit",
+				minute: "2-digit",
+				hour12: false,
+			});
+		},
 	},
 };

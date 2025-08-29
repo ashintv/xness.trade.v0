@@ -34,13 +34,12 @@ export default function Dashboard() {
 	const trade = useWss("ws://localhost:8080");
 
 	return (
-		<div className="w-screen h-screen flex flex-col bg-gray-950 text-white">
+		<div className="w-screen h-screen flex flex-col text-white">
 			{/* Navbar */}
-			<nav className="w-full h-14 flex items-center justify-between px-6 bg-gray-900 shadow-md">
+			<nav className="w-full h-20 flex items-center justify-between px-6  shadow-md">
 				<div className=" flex items-center gap-8">
-					<h1 className="text-xl font-bold">📈 Trading Dashboard</h1>
+					<h1 className="text-xl font-bold">📈 DonTo</h1>
 					<div className="flex w-xs items-center gap-1">
-						<p className="text-yellow-400 font-bold">Balance:</p>
 						<Balance trade={trade} />
 					</div>
 				</div>
@@ -58,8 +57,8 @@ export default function Dashboard() {
 				</div>
 			</nav>
 
-			<div className="flex flex-1 p-4 gap-4 ">
-				<div className="flex flex-col gap-4 ">
+			<div className="flex flex-1 p-4 gap-4 border border-gray-800">
+				<div className="flex flex-col gap-4 border border-gray-800 ">
 					<div className="">
 						<Table setAsset={setAsset} trade={trade} />
 					</div>
@@ -73,13 +72,15 @@ export default function Dashboard() {
 				</div>
 
 				{/* Right: Chart */}
-				<div className="flex-1 bg-transparent border border-[#50a2ff] rounded-xl p-4 shadow-lg h-1/2">
+				<div className="flex flex-col bg-transparent border border-gray-800 p-4 shadow-lg ">
 					{loading ? (
 						<p>Loading...</p>
 					) : (
 						<CandleChart timeframeSec={Number(timeFrame) * 60} asset={asset} />
 					)}
-					<Orders trade={trade} />
+					<div className="w-full border border-gray-800">
+						<Orders trade={trade} />
+					</div>
 				</div>
 			</div>
 		</div>

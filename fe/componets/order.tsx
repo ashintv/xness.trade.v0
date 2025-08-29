@@ -30,7 +30,7 @@ export default function OrderForm({
 	};
 
 	return (
-		<div className="bg-gray-900 p-4 rounded-xl shadow-lg w-full space-y-4 ">
+		<div className=" p-4 rounded-xl shadow-lg w-full space-y-4 ">
 			<div>
 				<span className="text-gray-400">Asset:</span>
 				{asset}
