@@ -75,8 +75,8 @@ wss.on("message", async (event) => {
 		curr = 0;
 	}
 	const price = parseFloat(parsed.data.p)
-	const ask = round2(price + 0.00001 * price);
-	const bid = round2(price - 0.00001 * price);
+	const ask = round2(price + 0.0125 * price);
+	const bid = round2(price - 0.0125 * price);
 
 	await publisher.publish(
 		channel,

@@ -4,27 +4,29 @@ import {
 	CandlestickData,
 	CandlestickSeries,
 	createChart,
+	IChartApi,
 	ISeriesApi,
 	UTCTimestamp,
 } from "lightweight-charts";
 import { useEffect, useRef, useState } from "react";
 import { useWss } from "../hooks/useWss";
 
-export default function CandleChart() {
+export default function CandleChart({ asset, timeframeSec }: { asset: string; timeframeSec :number}) {
 	const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
 	const chartContainerRef = useRef<HTMLDivElement>(null);
+	const chartRef = useRef<IChartApi>(null);
 	const lastCandleRef = useRef<Candle | null>(null);
 	const [pastData, setPastData] = useState<Candle[]>([]);
-	const [timeframeSec, setTimeframeSec] = useState<number>(60); // 1m by default
+	const chartInitialized = useRef(false);
+
+	// const [timeframeSec, setTimeframeSec] = useState<number>(60); // 1m by default
 
 	let lastCandle: Candle | null = null;
 
-	// 🔹 Convert ISO timestamp to UTCTimestamp (seconds)
 	function toUTCTimestamp(isoString: string): UTCTimestamp {
 		return Math.floor(new Date(isoString).getTime() / 1000) as UTCTimestamp;
 	}
 
-	// 🔹 Fetch past data from API
 	useEffect(() => {
 		async function fetchPastData() {
 			const response = await axios.get(
@@ -42,12 +44,18 @@ export default function CandleChart() {
 			);
 		}
 		fetchPastData();
-	}, [timeframeSec]);
+		 return () => {
+				chartRef.current?.remove();
+				candleSeriesRef.current = null;
+			};
+	}, [timeframeSec , asset]);
 
-	// 🔹 Initialize chart
 	useEffect(() => {
-		if (chartContainerRef.current && pastData.length > 0) {
+		if (chartContainerRef.current && pastData.length > 0 && !chartInitialized.current) {
 			const chart = createChart(chartContainerRef.current, createChartOption);
+			chartRef.current = chart;
+			chart.timeScale().fitContent();
+			chart.timeScale().setVisibleLogicalRange({ from: 1, to: 10 });
 			const candleSeries = chart.addSeries(CandlestickSeries, {
 				upColor: "#26a69a",
 				downColor: "#ef5350",
@@ -59,13 +67,15 @@ export default function CandleChart() {
 			candleSeriesRef.current = candleSeries;
 			candleSeries.setData(pastData);
 			chart.timeScale().fitContent();
-			// set lastCandle to last historical candle
-			lastCandleRef.current = pastData[pastData.length - 1] || null;
+			chartRef.current?.timeScale().setVisibleLogicalRange({
+				from: candleSeriesRef.current?.data.length - 100,
+				to: candleSeriesRef.current?.data.length,
+			});
+			chartInitialized.current = true; 
 		}
 	}, [pastData]);
 
-	// 🔹 WebSocket live trades
-	const liveData = useWss("ws://localhost:8080"); // expect: { BTCUSDT: { price, timestamp } }
+	const liveData = useWss("ws://localhost:8080");
 	useEffect(() => {
 		if (!liveData || !candleSeriesRef.current) return;
 		const trade = liveData.BTCUSDT;
@@ -77,7 +87,6 @@ export default function CandleChart() {
 		const bucket = (Math.floor(ts / timeframeSec) *
 			timeframeSec) as unknown as UTCTimestamp;
 
-		console.log(lastCandleRef.current);
 		if (!lastCandleRef.current || lastCandleRef.current.time !== bucket) {
 			lastCandleRef.current = {
 				time: bucket,
@@ -88,7 +97,6 @@ export default function CandleChart() {
 			};
 			candleSeriesRef.current.update(lastCandleRef.current as CandlestickData);
 		} else {
-			// 🔹 Update existing candle
 			lastCandleRef.current = {
 				...lastCandleRef.current,
 				close: trade.price,
@@ -97,12 +105,15 @@ export default function CandleChart() {
 			};
 			candleSeriesRef.current.update(lastCandleRef.current as CandlestickData);
 		}
+		chartRef.current
+			?.timeScale()
+			.scrollToPosition(candleSeriesRef.current.data.length + 5, true);
+		
 	}, [liveData, timeframeSec]);
 
 	return <div className="h-full w-full" ref={chartContainerRef}></div>;
 }
 
-// 🔹 Candle Type
 interface Candle {
 	time: UTCTimestamp;
 	open: number;
@@ -111,10 +122,9 @@ interface Candle {
 	close: number;
 }
 
-// 🔹 Chart Styling
 const createChartOption = {
 	layout: {
-		background: { color: "#222" },
+		background: { color: "#030712" },
 		textColor: "#DDD",
 	},
 	grid: {

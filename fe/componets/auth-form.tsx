@@ -9,7 +9,7 @@ export default function AuthForm({ mode }: { mode: "signin" | "signup" }) {
     const [passwordField, setPasswordField] = useState("");
     const [loading, setLoading] = useState(false);
 	const router = useRouter();
-    const  setUsername = useUserStore((state)=>state.setUsername )
+    const setUsername = useUserStore((state)=>state.setUsername )
     const setBalance = useUserStore((state)=>state.setBalance)
 	async function handleSubmit() {
         setLoading(true);
@@ -27,12 +27,12 @@ export default function AuthForm({ mode }: { mode: "signin" | "signup" }) {
         setLoading(false);
 	}
 	return (
-		<div className="flex flex-col gap-4">
+		<div className="flex flex-col gap-4 w-full">
 			<h2 className="text-2xl font-bold">
 				{mode === "signin" ? "Sign In" : "Sign Up"}
 			</h2>
-			<input onChange={(e)=>setUsernameField(e.target.value)} type="text" placeholder="Email" className="border p-2" />
-			<input onChange={(e)=>setPasswordField(e.target.value)} type="password" placeholder="Password" className="border p-2" />
+			<input onChange={(e)=>setUsernameField(e.target.value)} type="text" placeholder="Email" className="border p-2 w-full" />
+			<input onChange={(e)=>setPasswordField(e.target.value)} type="password" placeholder="Password" className="border p-2 w-full" />
 			<button onClick={handleSubmit} disabled={loading} className="bg-blue-600 disabled:bg-blue-400 text-white p-2 rounded">
 				{mode === "signin" ? "Sign In" : "Sign Up"}
 			</button>

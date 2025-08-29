@@ -10,6 +10,7 @@ import { Orders } from "../../../componets/orders";
 import { useWss } from "../../../hooks/useWss";
 import { Balance } from "../../../componets/balance";
 import { useFetchBalance } from "../../../hooks/usefetchBalance";
+import CandleChart from "../../../componets/tradeViewChart";
 
 // Mock table data type
 type Trade = {
@@ -71,11 +72,11 @@ export default function Dashboard() {
 				</div>
 
 				{/* Right: Chart */}
-				<div className="flex-1 bg-gray-800 rounded-xl p-4 shadow-lg">
+				<div className="flex-1 bg-transparent border border-[#50a2ff] rounded-xl p-4 shadow-lg h-1/2">
 					{loading ? (
 						<p>Loading...</p>
 					) : (
-						<TradeChart timeFrame={Number(timeFrame)} asset={asset} />
+						<CandleChart timeframeSec={Number(timeFrame) * 60} asset={asset} />
 					)}
 					<Orders trade={trade} />
 				</div>

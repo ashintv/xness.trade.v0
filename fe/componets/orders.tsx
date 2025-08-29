@@ -6,7 +6,6 @@ import { useOrderStore } from "../store/orderStore";
 import { useFetchOrders } from "../hooks/useFetchOrders";
 
 export function Orders({ trade }: { trade:Trade }) {
-	
 	const orders = useOrderStore((state) => state.orders);
 	const balance = useUserStore((state) => state.balance);
 	const username = useUserStore((state) => state.username);
@@ -23,11 +22,10 @@ export function Orders({ trade }: { trade:Trade }) {
 		} else if (order.type === "short") {
 			return (order.OpenPrice - currentPrice) * qty;
 		}
-
 		return 0;
 	}
 	return (
-		<div className="rounded-xl shadow-lg w-full border-black border bg-gray-900 p-4 mt-4">
+		<div className="rounded-xl mt-10 shadow-lg w-full border-black border  ">
 			<div className="flex items-center  p-2 rounded-md text-xs px-5 text-blue-400">
 				<div className="text-bold  w-1/6">S</div>
 				<div className="text-bold w-1/7">QT</div>
