@@ -19,7 +19,6 @@ export function useWss(url: string) {
 			const bid = message?.bid;
 			const previousAsk = prev.current?.[asset as keyof Trade]?.ask || 0;
 			const previousBid = prev.current?.[asset as keyof Trade]?.bid || 0;
-
 			const curr = {
 				time: new Date(ts).toLocaleTimeString(),
 				asset,

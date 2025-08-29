@@ -12,7 +12,7 @@ export function useFetchOrders({
 	const setOrders = useOrderStore((state) => state.setOrders);
 	const fetchData = async () => {
 		if (!username) {
-			alert("No username provided");
+			
 			return;
 		}
 		const res = await axios.get(`http://localhost:3000/api/orders/${username}`);
