@@ -11,18 +11,15 @@ export function useFetchOrders({
 }) {
 	const setOrders = useOrderStore((state) => state.setOrders);
 	const fetchData = async () => {
-		if (!username) {
-			
-			return;
-		}
 		const res = await axios.get(`http://localhost:3000/api/orders/${username}`);
 		setOrders(res.data.orders);
 	};
 
 	useEffect(() => {
+		if (!username) return;
 		const interval = setInterval(() => {
 			fetchData();
 		}, 1000);
 		return () => clearInterval(interval);
-	}, []);
+	}, [username]);
 }

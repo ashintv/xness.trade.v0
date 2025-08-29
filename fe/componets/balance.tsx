@@ -1,7 +1,7 @@
 import { Currency } from "lucide-react";
 import { roundTo } from "../lib/utils/RoundN";
 import { useUserStore } from "../store/userStore";
-import { useOrderStore } from "../store/orderStore";
+import { useBalanceStore, useOrderStore } from "../store/orderStore";
 import { Trade } from "../lib/types";
 
 export function Balance({ trade }: { trade: Trade }) {
@@ -18,7 +18,7 @@ export function Balance({ trade }: { trade: Trade }) {
         });
         return total;
     }
-	const balance = useUserStore((state) => state.balance);
+	const balance = useBalanceStore((state) => state.balance);
 	return (
 		<div className="flex flex-col w-fit text-xs">
 			Tradable: {roundTo(balance.tradable)} <br />

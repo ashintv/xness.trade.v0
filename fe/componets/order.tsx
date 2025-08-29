@@ -2,6 +2,7 @@
 import axios from "axios";
 import { useState } from "react";
 import { useUserStore } from "../store/userStore";
+import { useBalanceStore } from "../store/orderStore";
 
 export default function OrderForm({
 	asset,
@@ -15,7 +16,7 @@ export default function OrderForm({
 	const [quantity, setQuantity] = useState(0.01);
 	const [leverage, setLeverage] = useState(1);
 	const [type, setType] = useState<"long" | "short">("long");
-	const setBalance = useUserStore((state) => state.setBalance);
+	const setBalance = useBalanceStore((state) => state.setBalance);
 	const username = useUserStore((state) => state.username);
 	const handleSubmit = async () => {
 		const res = await axios.post("http://localhost:3000/api/order/open", {

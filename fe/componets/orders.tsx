@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { useUserStore } from "../store/userStore";
 import axios from "axios";
 import { AssetData, Order, Trade } from "../lib/types";
-import { useOrderStore } from "../store/orderStore";
+import { useBalanceStore, useOrderStore } from "../store/orderStore";
 import { useFetchOrders } from "../hooks/useFetchOrders";
 
 export function Orders({ trade }: { trade:Trade }) {
 	const orders = useOrderStore((state) => state.orders);
-	const balance = useUserStore((state) => state.balance);
+	const balance = useBalanceStore((state) => state.balance);
 	const username = useUserStore((state) => state.username);
 	const [filter, setFilter] = useState<"open" | "closed" | "all">("open");
 	useFetchOrders({ username , balance });
@@ -95,7 +95,7 @@ function OrderRow({
 	status: "open" | "closed";
 }) {
 	const username = useUserStore((state) => state.username);
-	const setBalance = useUserStore((state) => state.setBalance);
+	const setBalance = useBalanceStore((state) => state.setBalance);
 	async function handleClose(id: number) {
 		try {
 			const res = await axios.post("http://localhost:3000/api/order/close", {

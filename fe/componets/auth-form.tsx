@@ -4,13 +4,14 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useUserStore } from "../store/userStore";
 import axios from "axios";
+import { useBalanceStore } from "../store/orderStore";
 export default function AuthForm({ mode }: { mode: "signin" | "signup" }) {
     const [usernameField, setUsernameField] = useState("");
     const [passwordField, setPasswordField] = useState("");
     const [loading, setLoading] = useState(false);
 	const router = useRouter();
     const setUsername = useUserStore((state)=>state.setUsername )
-    const setBalance = useUserStore((state)=>state.setBalance)
+    const setBalance = useBalanceStore((state)=>state.setBalance)
 	async function handleSubmit() {
         setLoading(true);
         if (mode === "signin") {    

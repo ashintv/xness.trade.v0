@@ -1,3 +1,5 @@
+import { Balance } from "../componets/balance";
+
 export interface Order {
 	id: number;
 	asset: string;
@@ -16,8 +18,13 @@ export interface Balance {
 }
 
 export interface UserstoreState {
-	username: string | null;
+	username: string;
 	setUsername: (username: string) => void;
+	
+} 
+
+
+export interface BalanceState {
 	balance: Balance;
 	setBalance: (balance: Balance) => void;
 }

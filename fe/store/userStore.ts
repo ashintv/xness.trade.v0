@@ -1,24 +1,16 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { UserstoreState } from "../lib/types";
-
-
-
+import { BalanceState, UserstoreState } from "../lib/types";
 
 export const useUserStore = create<UserstoreState>()(
 	persist(
 		(set) => ({
-			username: null,
+			username: "",
 			setUsername: (username) => set({ username }),
-			balance: {
-				tradable: 0,
-				locked: 0,
-			},
-			setBalance: (balance) => set({ balance }),
 		}),
 		{
-			name: "user-storage", // ⚡ better naming than "food-storage"
-			storage: createJSONStorage(() => sessionStorage),
+			name: "user-storage",
+			storage: createJSONStorage(() => localStorage),
 		}
 	)
-);
+)

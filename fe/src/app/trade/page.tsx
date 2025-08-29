@@ -11,6 +11,7 @@ import { useWss } from "../../../hooks/useWss";
 import { Balance } from "../../../componets/balance";
 import { useFetchBalance } from "../../../hooks/usefetchBalance";
 import CandleChart from "../../../componets/tradeViewChart";
+import { useBalanceStore } from "../../../store/orderStore";
 
 // Mock table data type
 type Trade = {
@@ -28,7 +29,7 @@ export default function Dashboard() {
 	const [timeFrame, setTimeFrame] = useState<"1" | "5" | "15" | "60" | "1440">(
 		"1"
 	);
-	const Userbalance = useUserStore((state) => state.balance);
+	const Userbalance = useBalanceStore((state) => state.balance);
 	useFetchBalance();
 	const trade = useWss("ws://localhost:8080");
 
