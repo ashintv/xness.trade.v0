@@ -27,4 +27,6 @@ export interface Orders {
     pl?: number;
     margin: number;
     leverage: number;
+    takeProfit?: number;
+    stopLoss?: number ;
 }

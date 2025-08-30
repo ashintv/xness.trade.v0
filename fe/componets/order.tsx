@@ -1,8 +1,8 @@
 "use client";
 import axios from "axios";
 import { useState } from "react";
-import { useUserStore } from "../store/userStore";
-import { useBalanceStore } from "../store/orderStore";
+import { useUserStore } from "../src/store/userStore";
+import { useBalanceStore } from "../src/store/orderStore";
 
 export default function OrderForm({
 	asset,
@@ -17,6 +17,7 @@ export default function OrderForm({
 	const [leverage, setLeverage] = useState(1);
 	const [type, setType] = useState<"long" | "short">("long");
 	const setBalance = useBalanceStore((state) => state.setBalance);
+	const [pl, setPType] = useState<'%' | '$'>('%');
 	const username = useUserStore((state) => state.username);
 	const handleSubmit = async () => {
 		const res = await axios.post("http://localhost:3000/api/order/open", {
@@ -30,12 +31,17 @@ export default function OrderForm({
 	};
 
 	return (
-		<div className=" p-4 rounded-xl shadow-lg w-full space-y-4 ">
+		<div className=" p-4 rounded-xl shadow-lg w-full space-y-3 ">
 			<div>
 				<span className="text-gray-400">Asset:</span>
 				{asset}
 			</div>
-			<select className="w-full bg-blue-500 rounded-md p-3 flex justify-center" name="orderType" id="orderType" value={type} onChange={(e) => setType(e.target.value as "long" | "short")}>
+			<select
+				className="w-full bg-gray-700 rounded-md p-1 flex justify-center"
+				name="orderType"
+				id="orderType"
+				value={type}
+				onChange={(e) => setType(e.target.value as "long" | "short")}>
 				<option value="long">Long / Buy</option>
 				<option value="short">Short / Sell</option>
 			</select>
@@ -83,8 +89,32 @@ export default function OrderForm({
 					</button>
 				</div>
 			</div>
+
+			<SelectPL pl={pl} setPType={setPType} />
+			<div className="flex text-sm gap-1">
+				<div className="border border-gray-700 p-2">
+					TP
+					<input
+						type="number"
+						placeholder="0.13$"
+						className="flex-1 p-2 bg-black border border-gray-700 text-white rounded-l-md outline-none"
+					/>
+				</div>
+				<div className="border border-gray-700 p-2">
+					SL :
+					<input
+						type="number"
+						placeholder="0.29$"
+						className="flex-1 p-2 bg-black border border-gray-700 text-white rounded-l-md outline-none"
+					/>
+				</div>
+			</div>
 			<div className="text-sm text-gray-500">
-				Margin = {Math.round(((quantity * (type === "long" ? ask : sell)) / leverage )* 100) / 100} USD
+				Margin ={" "}
+				{Math.round(
+					((quantity * (type === "long" ? ask : sell)) / leverage) * 100
+				) / 100}{" "}
+				USD
 			</div>
 
 			{/* Place Order */}
@@ -96,3 +126,17 @@ export default function OrderForm({
 		</div>
 	);
 }
+
+
+export function SelectPL({ pl, setPType }:{ pl: '%' | '$', setPType: (value: '%' | '$') => void }){
+	return (
+		
+		<select
+			className="bg-black border border-gray-700 text-white rounded text-xs outline-none px-3 py-2 "
+			value={pl}
+			onChange={(e) => setPType(e.target.value as '%' | '$')}>
+			<option value="%">TP/Sl in %</option>
+			<option value="$">TP/Sl in $</option>
+		</select>
+	);
+} 

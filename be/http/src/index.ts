@@ -57,6 +57,27 @@ async function connectSubscriber() {
 				} else {
 					pNl = (order.OpenPrice - askPrice!) * order.qty * order.leverage;
 				}
+				if (order.takeProfit && pNl >= order.takeProfit) {
+					order.ClosePrice = order.type === "long" ? bidPrice! : askPrice!;
+					order.status = "closed";
+					const user = users.find((u) => u.username === order.username);
+					if (user) {
+						user.balance.locked -= order.margin;
+						user.balance.tradable += order.margin + pNl;
+						console.log(`User ${user.username} TakesProfit $${pNl} new balance: ${user.balance}`);
+					}
+				}
+				if (order.stopLoss && pNl <= -order.stopLoss) {
+					order.ClosePrice = order.type === "long" ? bidPrice! : askPrice!;
+					order.status = 'closed';
+					const user = users.find((u) => u.username === order.username);
+					if (user) {
+						user.balance.locked -= order.margin;
+						user.balance.tradable += order.margin + pNl;
+						console.log(`User ${user.username} StopLoss $${pNl} new balance: ${user.balance}`);
+					}
+				}
+
 				if (pNl <= -order.margin * 0.95) {
 					order.status = "closed";
 					order.ClosePrice = order.type === "long" ? bidPrice! : askPrice!;
@@ -231,6 +252,8 @@ app.post("/api/order/open", (req, res) => {
 			updatedAt: new Date(),
 			margin,
 			leverage: parse.data.leverage,
+			takeProfit: parse.data.takeProfit,
+			stopLoss: parse.data.stopLoss,
 		});
 		return res.status(200).json({
 			username: user.username,
