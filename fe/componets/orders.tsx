@@ -27,12 +27,14 @@ export function Orders({ trade }: { trade:Trade }) {
 	return (
 		<div className="rounded-xl mt-10 shadow-lg w-full border-black border  ">
 			<div className="flex items-center  p-2 rounded-md text-xs px-5 text-blue-400">
-				<div className="text-bold  w-1/6">S</div>
-				<div className="text-bold w-1/7">QT</div>
-				<div className="text-bold w-1/7">TYPE</div>
-				<div className="text-bold w-1/7">OP</div>
-				<div className="text-bold w-1/7">CP</div>
-				<div className="text-bold w-1/7">P/L</div>
+				<div className="text-bold  w-1/9">ASSET</div>
+				<div className="text-bold w-1/9">QT</div>
+				<div className="text-bold w-1/9">TYPE</div>
+				<div className="text-bold w-1/9">OP</div>
+				<div className="text-bold w-1/9">CP</div>
+				<div className="text-bold w-1/9">TP</div>
+				<div className="text-bold w-1/9">SL</div>
+				<div className="text-bold w-1/9">P/L</div>
 				<div
 					className={`text-bold w-1/7 text-underline hover:cursor-pointer hover:text-yellow-300 ${
 						filter === "open" ? "text-blue-500" : "text-gray-500"
@@ -64,8 +66,12 @@ export function Orders({ trade }: { trade:Trade }) {
 							qty={order.qty}
 							OpenPrice={order.OpenPrice}
 							type={order.type}
+							takeProfit={order.takeProfit}
+							stopLoss={order.stopLoss}	
 							CurrentPrice={
-								filter == "closed" ? order.ClosePrice : trade[order.asset as keyof Trade]?.bid!
+								filter == "closed"
+									? order.ClosePrice
+									: trade[order.asset as keyof Trade]?.bid!
 							}
 							pl={filter == "closed" ? order.pl : calculatePL(order)}
 						/>
@@ -84,6 +90,8 @@ function OrderRow({
 	pl,
 	type,
 	status,
+	takeProfit,
+	stopLoss
 }: {
 	id: number;
 	asset: string;
@@ -93,6 +101,8 @@ function OrderRow({
 	pl: number;
 	type: "long" | "short";
 	status: "open" | "closed";
+	takeProfit: number | null;
+	stopLoss: number | null;
 }) {
 	const username = useUserStore((state) => state.username);
 	const setBalance = useBalanceStore((state) => state.setBalance);
@@ -110,13 +120,15 @@ function OrderRow({
 	}
 	return (
 		<div className="flex items-center  p-2 border-b border-gray-950 text-xs px-5 ">
-			<div className="text-bold text-yellow-300 w-1/6">{asset}</div>
-			<div className="text-bold w-1/7">{qty}</div>
-			<div className="text-bold w-1/7">{type == "long" ? "Long" : "Short"}</div>
-			<div className="text-bold w-1/7">{OpenPrice}</div>
-			<div className="text-bold w-1/7">{CurrentPrice}</div>
+			<div className="text-bold text-yellow-300 w-1/9">{asset}</div>
+			<div className="text-bold w-1/9">{qty}</div>
+			<div className="text-bold w-1/9">{type == "long" ? "Long" : "Short"}</div>
+			<div className="text-bold w-1/9">{OpenPrice}</div>
+			<div className="text-bold w-1/9">{CurrentPrice}</div>
+			<div className="text-bold w-1/9">{takeProfit ? takeProfit : "N/A"}</div>
+			<div className="text-bold w-1/9">{stopLoss ? stopLoss : "N/A"}</div>
 			<div
-				className={`text-bold w-1/7 ${
+				className={`text-bold w-1/9 ${
 					pl < 0 ? "text-red-500" : "text-green-500"
 				}`}>
 				{Math.round(pl * 1000) / 1000}

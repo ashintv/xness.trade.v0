@@ -1,8 +1,10 @@
 "use client";
 import axios from "axios";
 import { useState } from "react";
-import { useUserStore } from "../src/store/userStore";
-import { useBalanceStore } from "../src/store/orderStore";
+import { useBalanceStore } from "../store/orderStore";
+import { useUserStore } from "../store/userStore";
+import { convertFromPercentage, convertToPercentage } from "../lib/utils/percentage-convetor";
+
 
 export default function OrderForm({
 	asset,
@@ -15,6 +17,8 @@ export default function OrderForm({
 }) {
 	const [quantity, setQuantity] = useState(0.01);
 	const [leverage, setLeverage] = useState(1);
+	const [takeProfit, setTakeProfit] = useState(0);
+	const [stopLoss, setStopLoss] = useState(0);
 	const [type, setType] = useState<"long" | "short">("long");
 	const setBalance = useBalanceStore((state) => state.setBalance);
 	const [pl, setPType] = useState<'%' | '$'>('%');
@@ -26,6 +30,8 @@ export default function OrderForm({
 			asset,
 			qty: quantity,
 			leverage,
+			stopLoss: pl === '%' ? convertFromPercentage(stopLoss, type === "long" ? ask : sell) : stopLoss,
+			takeProfit: pl === '%' ? convertFromPercentage(takeProfit, type === "long" ? ask : sell) : takeProfit,
 		});
 		setBalance(res.data.balance);
 	};
@@ -93,16 +99,20 @@ export default function OrderForm({
 			<SelectPL pl={pl} setPType={setPType} />
 			<div className="flex text-sm gap-1">
 				<div className="border border-gray-700 p-2">
-					TP
+					TP : <span className="text-gray-400">{pl === '%' ? convertFromPercentage(takeProfit, type === "long" ? ask : sell) : convertToPercentage(takeProfit, type === "long" ? ask : sell)}{pl === '$' ? '%' : '$'}</span>
 					<input
+						value={takeProfit}
+						onChange={(e) => setTakeProfit(parseFloat(e.target.value))}
 						type="number"
 						placeholder="0.13$"
 						className="flex-1 p-2 bg-black border border-gray-700 text-white rounded-l-md outline-none"
 					/>
 				</div>
 				<div className="border border-gray-700 p-2">
-					SL :
+					SL : <span className="text-gray-400">{pl === '%' ? convertFromPercentage(stopLoss, type === "long" ? ask : sell) : convertToPercentage(stopLoss, type === "long" ? ask : sell)}{pl === '%' ? '$' : '%'}</span>
 					<input
+						value={stopLoss}
+						onChange={(e) => setStopLoss(parseFloat(e.target.value))}
 						type="number"
 						placeholder="0.29$"
 						className="flex-1 p-2 bg-black border border-gray-700 text-white rounded-l-md outline-none"
@@ -135,8 +145,8 @@ export function SelectPL({ pl, setPType }:{ pl: '%' | '$', setPType: (value: '%'
 			className="bg-black border border-gray-700 text-white rounded text-xs outline-none px-3 py-2 "
 			value={pl}
 			onChange={(e) => setPType(e.target.value as '%' | '$')}>
-			<option value="%">TP/Sl in %</option>
-			<option value="$">TP/Sl in $</option>
+			<option value="%">take profit/stop loss in %</option>
+			<option value="$">take profit/stop loss in $</option>
 		</select>
 	);
 } 

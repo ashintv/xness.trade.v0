@@ -60,6 +60,7 @@ async function connectSubscriber() {
 				if (order.takeProfit && pNl >= order.takeProfit) {
 					order.ClosePrice = order.type === "long" ? bidPrice! : askPrice!;
 					order.status = "closed";
+					order.pl = pNl;
 					const user = users.find((u) => u.username === order.username);
 					if (user) {
 						user.balance.locked -= order.margin;
@@ -70,6 +71,7 @@ async function connectSubscriber() {
 				if (order.stopLoss && pNl <= -order.stopLoss) {
 					order.ClosePrice = order.type === "long" ? bidPrice! : askPrice!;
 					order.status = 'closed';
+					order.pl = pNl;
 					const user = users.find((u) => u.username === order.username);
 					if (user) {
 						user.balance.locked -= order.margin;
@@ -229,6 +231,8 @@ app.post("/api/order/open", (req, res) => {
 			createdAt: new Date(),
 			updatedAt: new Date(),
 			margin,
+			takeProfit: parse.data.takeProfit==0 ? null : parse.data.takeProfit!,
+			stopLoss: parse.data.stopLoss==0 ? null : parse.data.stopLoss!,
 			leverage: parse.data.leverage,
 		});
 		return res.status(200).json({
@@ -252,8 +256,8 @@ app.post("/api/order/open", (req, res) => {
 			updatedAt: new Date(),
 			margin,
 			leverage: parse.data.leverage,
-			takeProfit: parse.data.takeProfit,
-			stopLoss: parse.data.stopLoss,
+			takeProfit: parse.data.takeProfit==0 ? null : parse.data.takeProfit!,
+			stopLoss: parse.data.stopLoss==0 ? null: parse.data.stopLoss!,
 		});
 		return res.status(200).json({
 			username: user.username,
@@ -277,40 +281,36 @@ app.get("/api/orders/:username", (req, res) => {
 
 app.post("/api/order/close", (req, res) => {
 	const { orderID, username } = req.body;
-	//check if user exists
+
 	const user = users.find((user) => user.username === username);
 	if (!user) {
 		return res.status(404).json({ error: "User not found" });
 	}
-	// if not order
+	
 	const order = orders.find((order) => order.id === orderID);
 	if (!order) {
 		return res.status(404).json({ error: "Order not found" });
 	}
-	// close the order
+
 	if (order.status == "closed") {
 		return res.status(400).json({ error: "Order is already closed" });
 	}
 	const asset = order.asset as keyof WsData;
 	if (order.type == "long") {
 		const closePrice = ASSETS[asset]["bid"]!;
-
 		order.status = "closed";
 		order.updatedAt = new Date();
 		order.ClosePrice = closePrice;
-
 		const pnl = (closePrice - order.OpenPrice) * order.qty * order.leverage;
 		order.pl = pnl;
 		user.balance.locked -= order.margin;
 		user.balance.tradable += order.margin + pnl;
-
 		return res.status(200).json({ message: "Order closed successfully", user });
 	} else if (order.type == "short") {
 		const closePrice = ASSETS[asset]["ask"]!;
 		order.status = "closed";
 		order.updatedAt = new Date();
 		order.ClosePrice = closePrice;
-
 		const pnl = (order.OpenPrice - closePrice) * order.qty * order.leverage;
 		order.pl = pnl;
 		user.balance.locked -= order.margin;

@@ -10,6 +10,8 @@ export interface Order {
 	OpenPrice: number;
 	ClosePrice: number;
 	pl: number;
+	takeProfit: number | null;
+	stopLoss: number | null;
 }
 
 export interface Balance {
