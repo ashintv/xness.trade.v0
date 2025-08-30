@@ -4,6 +4,7 @@ import axios from "axios";
 import { AssetData, Order, Trade } from "../lib/types";
 import { useBalanceStore, useOrderStore } from "../store/orderStore";
 import { useFetchOrders } from "../hooks/useFetchOrders";
+import toast from "react-hot-toast";
 
 export function Orders({ trade }: { trade:Trade }) {
 	const orders = useOrderStore((state) => state.orders);
@@ -118,6 +119,7 @@ function OrderRow({
 				},
 			});
 			setBalance(res.data.user.balance);
+			toast.success("Order closed successfully!");
 		} catch (err) {
 			console.error(err);
 		}

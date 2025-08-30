@@ -1,14 +1,11 @@
-// import CandleChart from "../../../componets/tradeViewChart";
-
-// ;
-
-// export default function DemoPage() {
-// 	return (
-// 		<div className="w-screen h-screen ">
-// 			<h1>Demo Page</h1>
-// 			<div className="w-full h-1/2">
-// 				<CandleChart />
-// 			</div>
-// 		</div>
-// 	);
-// }
+'use client'
+import toast, { Toaster } from "react-hot-toast";
+const notify = () => toast.success("Here is your toast.");
+const App = () => {
+	return (
+		<div>
+			<button onClick={notify}>Make me a toast</button>
+		</div>
+	);
+};
+export default App;

@@ -30,3 +30,8 @@ export interface Orders {
     takeProfit: number | null;
     stopLoss: number | null ;
 }
+
+export interface NotificationType{
+    type:"error" | "info" | "success";
+    message: string;
+}

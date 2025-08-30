@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useBalanceStore } from "../store/orderStore";
 import { useUserStore } from "../store/userStore";
 import { convertFromPercentage, convertToPercentage } from "../lib/utils/percentage-convetor";
+import toast from "react-hot-toast";
 
 
 export default function OrderForm({
@@ -38,6 +39,7 @@ export default function OrderForm({
 			},
 		});
 		setBalance(res.data.balance);
+		toast.success("Order placed successfully!");
 	};
 
 	return (

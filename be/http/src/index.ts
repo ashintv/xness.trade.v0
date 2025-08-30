@@ -3,7 +3,7 @@ import { Pool } from "pg";
 import cors from "cors";
 import jwt from "jsonwebtoken";
 import { orderSchema, userSchema } from "./schema";
-import { Orders, WsData } from "./types";
+import { NotificationType, Orders, WsData } from "./types";
 import { createClient } from "redis";
 import {
 	DB_HOST,
@@ -18,6 +18,7 @@ const app = express();
 app.use(cors());
 
 app.use(express.json());
+
 
 let orderID = 1;
 let userCounter = 0;
@@ -75,6 +76,10 @@ async function connectSubscriber() {
 					if (user) {
 						user.balance.locked -= order.margin;
 						user.balance.tradable += order.margin + pNl;
+						user.notification.push({
+							type: "info",
+							message: `Order ${order.id} closed, Pnl ${order.pl} Caused by Take Profit`,
+						});
 						console.log(
 							`User ${user.username} TakesProfit $${pNl} new balance: ${user.balance}`
 						);
@@ -84,10 +89,15 @@ async function connectSubscriber() {
 					order.ClosePrice = order.type === "long" ? bidPrice! : askPrice!;
 					order.status = "closed";
 					order.pl = pNl;
+					
 					const user = users.find((u) => u.username === order.username);
 					if (user) {
 						user.balance.locked -= order.margin;
 						user.balance.tradable += order.margin + pNl;
+						user.notification.push({
+							type: "info",
+							message: `Order ${order.id} closed, Pnl ${order.pl} Caused by Stop Loss`,
+						});
 						console.log(
 							`User ${user.username} StopLoss $${pNl} new balance: ${user.balance}`
 						);
@@ -102,6 +112,10 @@ async function connectSubscriber() {
 					if (user) {
 						user.balance.locked -= order.margin;
 						user.balance.tradable += order.margin + pNl;
+						user.notification.push({
+							type: "info",
+							message: `Order ${order.id} closed, Pnl ${order.pl} Caused by Liquidation`,
+						});
 						console.log(`User ${user.username} new balance: ${user.balance}`);
 					}
 					console.log(`Order closed: ${JSON.stringify(order)} LIQUIDATED!!!!!`);
@@ -122,6 +136,7 @@ const users: {
 	id: string;
 	username: string;
 	password: string;
+	notification: NotificationType[];
 	balance: {
 		tradable: number;
 		locked: number;
@@ -131,6 +146,7 @@ const users: {
 		id: "1ashin",
 		username: "ashin",
 		password: "password",
+		notification: [],
 		balance: {
 			tradable: 5000,
 			locked: 0,
@@ -167,6 +183,7 @@ app.post("/api/signup", (req, res) => {
 		id,
 		username,
 		password,
+		notification: [],
 		balance: {
 			tradable: 5000,
 			locked: 0,
@@ -207,7 +224,9 @@ app.get("/api/balance/", authMiddleware, (req, res) => {
 	if (!user) {
 		return res.status(404).json({ error: "User not found" });
 	}
-	return res.status(200).json({ balance: user.balance });
+	const notification = user.notification;
+	user.notification = [];
+	return res.status(200).json({ balance: user.balance, notification });
 });
 
 app.post("/api/order/open", authMiddleware, (req, res) => {
@@ -284,7 +303,7 @@ app.get("/api/orders/", authMiddleware, (req, res) => {
 	//@ts-ignore
 	const username = req.username;
 	const userOrders = orders.filter((order) => order.username === username);
-	return res.status(200).json({ orders: userOrders });
+	return res.status(200).json({ orders: userOrders});
 });
 
 app.post("/api/order/close", authMiddleware, (req, res) => {
