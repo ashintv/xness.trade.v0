@@ -32,6 +32,10 @@ export default function OrderForm({
 			leverage,
 			stopLoss: pl === '%' ? convertFromPercentage(stopLoss, type === "long" ? ask : sell) : stopLoss,
 			takeProfit: pl === '%' ? convertFromPercentage(takeProfit, type === "long" ? ask : sell) : takeProfit,
+		}, {
+			headers: {
+				Authorization: localStorage.getItem("token"),
+			},
 		});
 		setBalance(res.data.balance);
 	};

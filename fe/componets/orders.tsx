@@ -107,10 +107,15 @@ function OrderRow({
 	const username = useUserStore((state) => state.username);
 	const setBalance = useBalanceStore((state) => state.setBalance);
 	async function handleClose(id: number) {
+		const url = process.env.BACKEND_URL || `http://localhost:3000/api`;
 		try {
-			const res = await axios.post("http://localhost:3000/api/order/close", {
+			const res = await axios.post(`${url}/order/close`, {
 				orderID: id,
 				username,
+			} ,{
+				headers: {
+					Authorization: localStorage.getItem("token"),
+				},
 			});
 			setBalance(res.data.user.balance);
 		} catch (err) {

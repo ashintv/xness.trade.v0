@@ -5,12 +5,22 @@ import jwt from "jsonwebtoken";
 import { orderSchema, userSchema } from "./schema";
 import { Orders, WsData } from "./types";
 import { createClient } from "redis";
-
+import {
+	DB_HOST,
+	DB_NAME,
+	DB_PASSWORD,
+	DB_PORT,
+	DB_USER,
+	JWT_SECRET,
+} from "./config";
+import { authMiddleware } from "./middlewares/auth-middleware";
 const app = express();
 app.use(cors());
-let orderID = 1;
+
 app.use(express.json());
 
+let orderID = 1;
+let userCounter = 0;
 const ASSETS: WsData = {
 	BTCUSDT: {
 		ask: null,
@@ -65,18 +75,22 @@ async function connectSubscriber() {
 					if (user) {
 						user.balance.locked -= order.margin;
 						user.balance.tradable += order.margin + pNl;
-						console.log(`User ${user.username} TakesProfit $${pNl} new balance: ${user.balance}`);
+						console.log(
+							`User ${user.username} TakesProfit $${pNl} new balance: ${user.balance}`
+						);
 					}
 				}
 				if (order.stopLoss && pNl <= -order.stopLoss) {
 					order.ClosePrice = order.type === "long" ? bidPrice! : askPrice!;
-					order.status = 'closed';
+					order.status = "closed";
 					order.pl = pNl;
 					const user = users.find((u) => u.username === order.username);
 					if (user) {
 						user.balance.locked -= order.margin;
 						user.balance.tradable += order.margin + pNl;
-						console.log(`User ${user.username} StopLoss $${pNl} new balance: ${user.balance}`);
+						console.log(
+							`User ${user.username} StopLoss $${pNl} new balance: ${user.balance}`
+						);
 					}
 				}
 
@@ -105,6 +119,7 @@ connectSubscriber();
 
 //in memory user store
 const users: {
+	id: string;
 	username: string;
 	password: string;
 	balance: {
@@ -113,6 +128,7 @@ const users: {
 	};
 }[] = [
 	{
+		id: "1ashin",
 		username: "ashin",
 		password: "password",
 		balance: {
@@ -124,11 +140,11 @@ const users: {
 
 // pool
 const pool = new Pool({
-	host: "localhost", // or your DB host
-	port: 5432, // default Postgres port
-	user: "postgres", // your username
-	password: "pass", // your password
-	database: "xness",
+	host: DB_HOST,
+	port: DB_PORT ? parseInt(DB_PORT) : 5432,
+	user: DB_USER,
+	password: DB_PASSWORD,
+	database: DB_NAME,
 });
 
 app.use(express.json());
@@ -137,28 +153,28 @@ const port = 3000;
 app.post("/api/signup", (req, res) => {
 	const parse = userSchema.safeParse(req.body);
 	if (!parse.success) {
-		return res.status(400).json({ error: parse.error });
+		return res.status(400).json({ message: "Error while signing up" });
 	}
-
 	const { username, password } = parse.data;
-
-	// Check if user already exists
 	const existingUser = users.find((user) => user.username === username);
 	if (existingUser) {
-		return res.status(409).json({ error: "User already exists" });
+		console.log(`User ${username} already exists`);
+		return res.status(403).json({ message: "Error while signing up" });
 	}
-
-	// Create new user
-	const newUser = {
+	userCounter++;
+	const id = userCounter + username;
+	users.push({
+		id,
 		username,
 		password,
 		balance: {
-			usd: 5000,
-			btc: 0,
+			tradable: 5000,
+			locked: 0,
 		},
-	};
-	// users.push(newUser);
-	return res.status(201).json({ message: "User created successfully" });
+	});
+	console.log(`User ${username} signed up successfully`);
+	console.log(users);
+	return res.status(201).json({ userId: id });
 });
 
 app.post("/api/signin", (req, res) => {
@@ -167,28 +183,26 @@ app.post("/api/signin", (req, res) => {
 		return res.status(400).json({ error: parse.error });
 	}
 	const { username, password } = parse.data;
-
 	const existingUser = users.find((user) => user.username === username);
 	if (!existingUser) {
-		return res.status(404).json({ error: "User not found" });
+		console.log(`User ${username} not found`);
+		return res.status(403).json({ message: "Incorrect credentials" });
 	}
-
 	if (existingUser.password !== password) {
-		return res.status(401).json({ error: "Invalid password" });
+		console.log(` ${password} provided invalid password`);
+		return res.status(403).json({ message: "Incorrect credentials" });
 	}
+	// CHANGE IN REQUIRED RESPONSE FROM SCHEMA
+	const token = jwt.sign({ username }, JWT_SECRET!);
 	return res
 		.status(200)
-		.json({ username: existingUser.username, balance: existingUser.balance });
+		.json({ token, username: username, balance: existingUser.balance });
 });
 
-//should be verified using middleware
-app.get("/api/balance/:username", (req, res) => {
-	const { username } = req.params;
-
-	if (!username) {
-		return res.status(400).json({ error: "Username is required" });
-	}
-
+app.get("/api/balance/", authMiddleware, (req, res) => {
+	//@ts-ignore
+	const username = req.username;
+	console.log(username)
 	const user = users.find((user) => user.username === username);
 	if (!user) {
 		return res.status(404).json({ error: "User not found" });
@@ -196,13 +210,13 @@ app.get("/api/balance/:username", (req, res) => {
 	return res.status(200).json({ balance: user.balance });
 });
 
-app.post("/api/order/open", (req, res) => {
+app.post("/api/order/open", authMiddleware, (req, res) => {
 	const parse = orderSchema.safeParse(req.body);
 	if (!parse.success) {
 		return res.status(400).json({ error: parse.error });
 	}
-	// check if user exists //TODO:: actually done by middlewares
-	const user = users.find((user) => user.username === parse.data.username);
+	//@ts-ignore
+	const user = users.find((user) => user.username === req.username);
 	if (!user) {
 		return res.status(404).json({ error: "User not found" });
 	}
@@ -231,8 +245,8 @@ app.post("/api/order/open", (req, res) => {
 			createdAt: new Date(),
 			updatedAt: new Date(),
 			margin,
-			takeProfit: parse.data.takeProfit==0 ? null : parse.data.takeProfit!,
-			stopLoss: parse.data.stopLoss==0 ? null : parse.data.stopLoss!,
+			takeProfit: parse.data.takeProfit == 0 ? null : parse.data.takeProfit!,
+			stopLoss: parse.data.stopLoss == 0 ? null : parse.data.stopLoss!,
 			leverage: parse.data.leverage,
 		});
 		return res.status(200).json({
@@ -256,8 +270,8 @@ app.post("/api/order/open", (req, res) => {
 			updatedAt: new Date(),
 			margin,
 			leverage: parse.data.leverage,
-			takeProfit: parse.data.takeProfit==0 ? null : parse.data.takeProfit!,
-			stopLoss: parse.data.stopLoss==0 ? null: parse.data.stopLoss!,
+			takeProfit: parse.data.takeProfit == 0 ? null : parse.data.takeProfit!,
+			stopLoss: parse.data.stopLoss == 0 ? null : parse.data.stopLoss!,
 		});
 		return res.status(200).json({
 			username: user.username,
@@ -266,27 +280,21 @@ app.post("/api/order/open", (req, res) => {
 	}
 });
 
-app.get("/api/orders/:username", (req, res) => {
-	// Get all orders of user
-	const { username } = req.params;
-
-	// check if a user TODO:Done by middleware
-	if (!username) {
-		return res.status(400).json({ error: "Username is required" });
-	}
-
+app.get("/api/orders/", authMiddleware, (req, res) => {
+	//@ts-ignore
+	const username = req.username;
 	const userOrders = orders.filter((order) => order.username === username);
 	return res.status(200).json({ orders: userOrders });
 });
 
-app.post("/api/order/close", (req, res) => {
-	const { orderID, username } = req.body;
-
-	const user = users.find((user) => user.username === username);
+app.post("/api/order/close", authMiddleware, (req, res) => {
+	const { orderID } = req.body;
+	//@ts-ignore
+	const user = users.find((user) => user.username === req.username);
 	if (!user) {
 		return res.status(404).json({ error: "User not found" });
 	}
-	
+
 	const order = orders.find((order) => order.id === orderID);
 	if (!order) {
 		return res.status(404).json({ error: "Order not found" });
@@ -319,7 +327,6 @@ app.post("/api/order/close", (req, res) => {
 	}
 });
 
-// TODO: /api/trades/:asset/:time
 app.get("/api/trades/:asset/:time", async (req, res) => {
 	const { asset, time } = req.params;
 	const table = `trades_${time}m`;

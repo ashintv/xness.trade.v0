@@ -10,8 +10,13 @@ export function useFetchOrders({
 	balance: Balance;
 }) {
 	const setOrders = useOrderStore((state) => state.setOrders);
+	const url = process.env.BACKEND_URL || `http://localhost:3000/api`;
 	const fetchData = async () => {
-		const res = await axios.get(`http://localhost:3000/api/orders/${username}`);
+		const res = await axios.get(`${url}/orders`, {
+			headers: {
+				Authorization: localStorage.getItem("token"),
+			},
+		});
 		setOrders(res.data.orders);
 	};
 

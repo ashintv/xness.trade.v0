@@ -19,11 +19,18 @@ export default function AuthForm({ mode }: { mode: "signin" | "signup" }) {
                 username: usernameField,
                 password: passwordField,
             });
+			localStorage.setItem("token", res.data.token);
             setUsername(res.data.username);
             setBalance(res.data.balance);
             router.push("/trade");
 		} else {
-			// Handle sign up
+			// Sign up
+			const res = await axios.post(`http://localhost:3000/api/signup`, {
+				username: usernameField,
+				password: passwordField,
+			});
+			console.log(res.data);
+			router.push("/signin");
 		}
         setLoading(false);
 	}
