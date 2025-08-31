@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS trades (
     symbol TEXT NOT NULL,
     price NUMERIC,
     quantity NUMERIC,
-    is_buyer_maker BOOLEAN
+    is_buyer_maker BOOLEAN,
+    decimal NUMERIC
 );
 
 -- make it a hypertable

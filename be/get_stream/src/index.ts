@@ -1,13 +1,13 @@
 import WebSocket from "ws";
 import { Client } from "pg";
-import format from "pg-format";
-
 import { createClient } from "redis";
+import { storeValue } from "./heplers/decimal-converts";
+import { CHANNEL_V0, Decimals, query, query_V0, SPREAD } from "./config";
+import { batchPushToDb } from "./db";
 
-const redisUrl = "redis://localhost:6370"; // replace with your Redis URL
+const redisUrl = "redis://localhost:6370";
 const publisher = createClient({ url: redisUrl });
 
-//helper
 const round2 = (num: number) => Math.round(num * 100) / 100;
 
 async function ConnectPubsub() {
@@ -27,11 +27,25 @@ const URL =
 		"adausdt@aggTrade", // ADAUSDT aggregated trades
 	].join("/");
 
-
 const BATCH_SIZE = 200;
+/**
+ * Batch of trades with their original values.
+ */
 const batch: [timeStamp: string, asset: string, price: number][] = [];
-let curr = 0;
 
+/**
+ * Batch of trades with their original decimal precision.
+ */
+const batch_v0: [
+	timeStamp: string,
+	asset: string,
+	price: number,
+	quantity: number,
+	isBuyerMaker: boolean,
+	decimals: number
+][] = [];
+
+let curr = 0;
 const client = new Client({
 	host: "localhost",
 	port: 5432,
@@ -39,53 +53,80 @@ const client = new Client({
 	password: "pass",
 	database: "xness",
 });
-
+/**
+ * Connect to PostgreSQL for xness non accurate rounded values
+ */
 async function connect() {
 	await client.connect();
+	console.log(
+		"✅ Connected to PostgreSQL for xness non accurate rounded values"
+	);
 }
-
 connect();
-const wss = new WebSocket(URL);
 
+const client_v0 = new Client({
+	host: "localhost",
+	port: 5432,
+	user: "postgres",
+	password: "pass",
+	database: "xness_v0",
+});
+
+/**
+ * Connect to PostgreSQL for xness_v0 accurate integer values
+ */
+async function connect_v0() {
+	await client_v0.connect();
+	console.log(
+		"✅ Connected to PostgreSQL for xness_v0 accurate integer values"
+	);
+}
+connect_v0();
+
+const wss = new WebSocket(URL);
 wss.on("open", () => {
 	console.log("WebSocket connection established");
 });
 
 wss.on("message", async (event) => {
+	
 	const data = event.toString();
 	const parsed = JSON.parse(data);
-	const ts = new Date(Number(parsed.data.E))
+	const ts = new Date(Number(parsed.data.T))
 		.toISOString()
 		.replace("T", " ")
 		.replace("Z", "");
-	batch.push([ts, parsed.data.s, parseFloat(parsed.data.p)]);
-	curr++;
-	if (curr >= BATCH_SIZE) {
-		try {
-			const query = format(
-				"INSERT INTO trade (time, asset, price) VALUES %L",
-				batch
-			);
-			await client.query(query);
-			console.log("Batch insert done", batch.length, "records");
-		} catch (err) {
-			console.error("Error inserting batch:", err);
-		}
-		batch.length = 0; // clear the batch
-		curr = 0;
-	}
-	const price = parseFloat(parsed.data.p)
-	const ask = round2(price + 0.0125 * price);
-	const bid = round2(price - 0.0125 * price);
+	const raw_price = parsed.data.p;
+	const decimal = Decimals[parsed.data.s as keyof typeof Decimals];
+	console.log("Received message from WebSocket", parsed.data.T);
+	// store batches
 
+	const price_v0 = storeValue(raw_price, decimal);
+	const ask_v0 = storeValue(raw_price * (1 + SPREAD), decimal);
+	const bid_v0 = storeValue(raw_price * (1 - SPREAD), decimal);
+
+	batch_v0.push([ts, parsed.data.s, price_v0, 1, parsed.data.m, decimal]);
+	batch.push([ts, parsed.data.s, parseFloat(raw_price)]);
+
+	// flush batches when full
+	// publish rounded (float-based)
+	const ask = round2(raw_price * (1 + SPREAD));
+	const bid = round2(raw_price * (1 - SPREAD));
 	await publisher.publish(
 		channel,
+		JSON.stringify({ ts, asset: parsed.data.s, price: parseFloat(raw_price), ask, bid })
+	);
+
+	// publish integer v0 (accurate)
+	await publisher.publish(
+		CHANNEL_V0,
 		JSON.stringify({
 			ts,
 			asset: parsed.data.s,
-			price,
-			ask,
-			bid
+			price: price_v0,
+			ask: ask_v0,
+			bid: bid_v0,
+			decimal,
 		})
 	);
 });
@@ -93,3 +134,24 @@ wss.on("message", async (event) => {
 wss.on("error", (error) => {
 	console.error("WebSocket error:", error);
 });
+
+
+const intervel = setInterval(async () => {
+	console.log(`Flushing ${batch_v0.length} trades to DB...`);
+	const filters_batchV0 = batch_v0.filter((row) =>
+		row.every((val) => val !== undefined && val !== null)
+	);
+	const filteres_batch = batch.filter((row) =>
+		row.every((val) => val !== undefined && val !== null)
+	);
+	if (filteres_batch.length === 0 || filters_batchV0.length === 0) {
+		console.log("No valid trades to flush");
+		console.log("V0", filteres_batch);
+		console.log("V1", filters_batchV0);
+		return;
+	}
+	await batchPushToDb(client, query, batch);
+	await batchPushToDb(client_v0, query_V0, batch_v0);
+	batch.length = 0;
+	batch_v0.length = 0;
+}, 10 * 1000);
