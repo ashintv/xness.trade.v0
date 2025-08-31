@@ -1,5 +1,7 @@
 
 import express from "express";
+import { authMiddleware } from "../middlewares/auth";
+import { closed_orders_v0, open_orders_v0 } from "../config";
 
 /**
  * GET /api/v1/trades/open  --  get all open trades
@@ -8,12 +10,19 @@ import express from "express";
  */
 export const tradesRouter = express.Router();
 
-tradesRouter.get("/open", (req, res) => {
-  // return all open trades
+tradesRouter.get("/open",authMiddleware, (req, res) => {
+    const userId = req.userId!;
+    const openTrades = open_orders_v0.filter(order => order.userId === userId);
+    return res.status(200).json({
+        trades: openTrades
+    });
 });
 
 
-tradesRouter.get("/closed", (req, res) => {
-
-  // return all closed trades
+tradesRouter.get("/closed",authMiddleware, (req, res) => {
+    const userId = req.userId!;
+    const closedTrades = closed_orders_v0.filter(order => order.userId === userId);
+    return res.status(200).json({
+        trades: closedTrades
+    });
 });

@@ -2,6 +2,7 @@ import  format  from 'pg-format';
 import express from 'express'   
 import { Pool } from "pg";
 import { timeStampToDate } from '../lib/timeStamp';
+import { selectTradesQuery } from '../config';
 /**
  * Candle API
  * GET /api/v1/candles
@@ -14,10 +15,6 @@ const pool = new Pool({
 	password: "pass",
 	database: "xness_v0",
 });
-
-
-export const selectTradesQuery =
-	"SELECT * FROM %s WHERE symbol = %L AND timestamp BETWEEN to_timestamp(%s / 1000) AND to_timestamp(%s / 1000) ORDER BY timestamp ASC";
 
 
 

@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { JWT_SECRET } from "../config";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 
 export const authMiddleware = (
 	req: Request,
@@ -12,11 +12,11 @@ export const authMiddleware = (
 	if (!token) {
 		return res.status(401).json({ message: "Unauthorized" });
 	}
-	const verify = jwt.verify(token, JWT_SECRET!);
+	const verify = jwt.verify(token, JWT_SECRET!) as JwtPayload;
 	if (!verify) {
 		return res.status(403).json({ message: "Forbidden" });
-	}
-	//@ts-ignore
+    }
+    //@ts-ignore
 	req.userId = verify.userId;
 	next();
 };

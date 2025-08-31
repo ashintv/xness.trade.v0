@@ -11,6 +11,8 @@ import { authMiddleware } from "../middlewares/auth";
  * GET /api/v1/user/balance
  */
 export const userRouter = express.Router();
+
+
 userRouter.post("/signup", (req, res) => {
 	const result = userSchema.safeParse(req.body);
 	if (!result.success) {
@@ -28,6 +30,9 @@ userRouter.post("/signup", (req, res) => {
 	});
 	return res.status(201).json({ userId: uuid });
 });
+
+
+
 
 userRouter.post("/signin", (req, res) => {
 	const result = userSchema.safeParse(req.body);
@@ -48,9 +53,10 @@ userRouter.post("/signin", (req, res) => {
 	return res.status(200).json({ token });
 });
 
+
+
 userRouter.get("/balance", authMiddleware, (req, res) => {
-    console.log("balance")
-	//@ts-ignore
+
 	const userId = req.userId;
 	const user = users_v0.find((u) => u.userId === userId);
 	if (!user) {
@@ -58,4 +64,3 @@ userRouter.get("/balance", authMiddleware, (req, res) => {
 	}
 	return res.status(200).json({ usd_balance: user.balance.usd_balance });
 });
-
