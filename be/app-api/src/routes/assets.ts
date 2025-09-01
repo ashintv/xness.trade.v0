@@ -1,12 +1,12 @@
 import express from "express";
-import { redisSubscriber_ } from "..";
+import { tradeManager } from "..";
 import { AssetMeddata } from "../config";
 export const assetsRouter = express.Router();
 /**
  * GET /api/v1/assets -- get all assets
  */
 assetsRouter.get("/", (req, res) => {
-	const asset_prices = redisSubscriber_.getAssets();
+	const asset_prices = tradeManager.getAssets();
 	const assets = [];
 	for (const symbol in asset_prices) {
 		assets.push({
@@ -18,5 +18,5 @@ assetsRouter.get("/", (req, res) => {
 			imageUrl: AssetMeddata[symbol as keyof typeof AssetMeddata].imageUrl,
 		});
 	}
-	res.json(assets);
+	res.json({assets});
 });

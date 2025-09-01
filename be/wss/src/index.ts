@@ -15,11 +15,6 @@ connectSubscriber();
  */
 const wss = new WebSocketServer({ port: 8080 });
 wss.on("connection", async (ws) => {
-	
-
-
-
-
 	ws.on("message", (message) => {
 		ws.send(`Echo: ${message}`);
 	});
@@ -27,7 +22,6 @@ wss.on("connection", async (ws) => {
 		ws.send(message);
 	});
 });
-
 
 /**
  * WebSocket server for real-time updates with original decimal precision (more accurate)

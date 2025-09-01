@@ -16,6 +16,7 @@ export const userRouter = express.Router();
 userRouter.post("/signup", (req, res) => {
 	const result = userSchema.safeParse(req.body);
 	if (!result.success) {
+		console.log(result.error);
 		return res.status(403).json({ message: "Error while signing up" });
 	}
 	const uuid = crypto.randomUUID();
@@ -30,7 +31,6 @@ userRouter.post("/signup", (req, res) => {
 	});
 	return res.status(201).json({ userId: uuid });
 });
-
 
 
 
@@ -56,7 +56,6 @@ userRouter.post("/signin", (req, res) => {
 
 
 userRouter.get("/balance", authMiddleware, (req, res) => {
-
 	const userId = req.userId;
 	const user = users_v0.find((u) => u.userId === userId);
 	if (!user) {

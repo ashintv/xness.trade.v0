@@ -9,13 +9,20 @@ export const userSchema = z.object({
 		.max(10, "Password must be at most 10 characters long"),
 });
 
-export const extendedUserSchema = userSchema.extend({
-	userId: z.string().uuid(),
-	balance: z.object({
-		usd_balance: z.number().min(0).default(0),
-		locked_balance: z.number().min(0).default(0),
-	}),
-});
+
+/**
+ * Extended user schema with additional fields
+ * userId: UUID
+ * balance: UserBalance:{
+ *   usd_balance: number,
+ *   locked_balance: number
+ * }
+ * notification: [{
+ *   message: string
+ *   type: "error" | "success" | "info"
+ * }]
+ */
+
 
 
 export const openTradeSchema = z.object({

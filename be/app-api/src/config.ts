@@ -2,12 +2,10 @@
 import { createClient } from "redis";
 import { ClosedOrder, OpenOrder, User } from "./types/v0-types";
 import dotenv from "dotenv";
-import { redisSubscriber } from "./classses/redisSubscriber";
+
 dotenv.config();
 
 export const users_v0: User[] = [];
-
-export const open_orders_v0: OpenOrder[] = [];
 
 export const closed_orders_v0: ClosedOrder[] = [];
 

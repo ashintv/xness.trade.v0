@@ -1,7 +1,8 @@
 
 import express from "express";
 import { authMiddleware } from "../middlewares/auth";
-import { closed_orders_v0, open_orders_v0 } from "../config";
+import { closed_orders_v0 } from "../config";
+import { tradeManager } from "..";
 
 /**
  * GET /api/v1/trades/open  --  get all open trades
@@ -12,7 +13,7 @@ export const tradesRouter = express.Router();
 
 tradesRouter.get("/open",authMiddleware, (req, res) => {
     const userId = req.userId!;
-    const openTrades = open_orders_v0.filter(order => order.userId === userId);
+    const openTrades = tradeManager.getOrderOf(userId);
     return res.status(200).json({
         trades: openTrades
     });

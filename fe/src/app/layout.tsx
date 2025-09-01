@@ -37,7 +37,6 @@ export default function RootLayout({
 							borderRadius: "9px",
 							backdropFilter: "blur(5px)",
 							WebkitBackdropFilter: "blur(10px) saturate(150%)", // Safari
-			
 							
 						},
 					}}
