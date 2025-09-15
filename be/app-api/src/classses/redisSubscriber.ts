@@ -4,6 +4,7 @@ import { Asset, NotificationType, OpenOrder, User, UserBalance } from "../types/
 import { RedisClientType } from "redis";
 
 export class TradeManager {
+	
 	private open_orders: OpenOrder[] = [];
 	private client: RedisClientType;
 	private QueueManager: RedisClientType;
@@ -198,8 +199,9 @@ export class TradeManager {
 	 */
 	private async send_confirmation(notification: NotificationType, res: Response | undefined) {
 		if (res) {
-			res?.write(JSON.stringify(notification));
+			console.log("Sending confirmation:", res);
+			res.write(("data: " + JSON.stringify({ ...notification }) + "\n\n"));
 		}
-		await this.QueueManager.xAdd(this.queue_name, "*", { "data": JSON.stringify(notification) });
+		await this.QueueManager.xAdd(this.queue_name, "*", { data: JSON.stringify(notification) });
 	}
 }

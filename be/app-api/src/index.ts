@@ -13,18 +13,21 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/trade", tradeRouter);
 app.use("/api/v1/trades", tradesRouter);
 app.use("/api/v1/assets", assetsRouter);
 app.use("/api/v1/candles", candleRouter);
-app.use("/api/v1/events" ,eventsRouter )
+app.use("/api/v1/events", eventsRouter);
 
-const redisClient = createClient({ url: "redis://localhost:6370" });
+const redisClient = createClient({
+	socket: {
+		host: process.env.REDIS_HOST || "localhost",
+		port: Number(process.env.REDIS_PORT!) || 6379,
+	},
+});
 export const tradeManager = new TradeManager(redisClient as RedisClientType);
 
-app.listen(3005, () => {
+app.listen(3000, () => {
 	console.log("v0 Server is running on port 3005");
-    
 });

@@ -5,6 +5,7 @@ import { useBalanceStore } from "../store/orderStore";
 import { useUserStore } from "../store/userStore";
 import { convertFromPercentage, convertToPercentage } from "../lib/utils/percentage-convetor";
 import toast from "react-hot-toast";
+import app_api from "../lib/config";
 
 
 export default function OrderForm({
@@ -25,11 +26,10 @@ export default function OrderForm({
 	const [pl, setPType] = useState<'%' | '$'>('%');
 	const username = useUserStore((state) => state.username);
 	const handleSubmit = async () => {
-		const res = await axios.post("http://localhost:3000/api/order/open", {
-			username,
-			type,
+		const res = await app_api.post("/trade", {
+			type: type === 'long' ? 'buy' : 'sell',
 			asset,
-			qty: quantity,
+			margin: quantity * leverage * (type === "long" ? ask : sell),
 			leverage,
 			stopLoss: pl === '%' ? convertFromPercentage(stopLoss, type === "long" ? ask : sell) : stopLoss,
 			takeProfit: pl === '%' ? convertFromPercentage(takeProfit, type === "long" ? ask : sell) : takeProfit,
@@ -38,8 +38,7 @@ export default function OrderForm({
 				Authorization: localStorage.getItem("token"),
 			},
 		});
-		setBalance(res.data.balance);
-		toast.success("Order placed successfully!");
+		
 	};
 
 	return (

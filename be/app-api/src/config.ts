@@ -11,8 +11,6 @@ export const closed_orders_v0: ClosedOrder[] = [];
 
 export const JWT_SECRET = process.env.JWT_SECRET;
 
-export const redisClient = createClient({ url: "redis://localhost:6370" });
-
 export const selectTradesQuery =
 	"SELECT * FROM %s WHERE symbol = %L AND timestamp BETWEEN to_timestamp(%s / 1000) AND to_timestamp(%s / 1000) ORDER BY timestamp ASC";
 

@@ -12,6 +12,8 @@ import { useEffect, useRef, useState } from "react";
 import { useWss } from "../hooks/useWss";
 import { Trade } from "../lib/types";
 import { time } from "console";
+import app_api from "../lib/config";
+import { restoreValue } from "../lib/utils/RoundN";
 
 export default function CandleChart({
 	asset,
@@ -38,20 +40,21 @@ export default function CandleChart({
 	function toUTCTimestamp_Real(): UTCTimestamp {
 		return Math.floor(Date.now() / 1000) as UTCTimestamp;
 	}
-
+	const now = Date.now(); // current time in ms
+	const fourDaysAgo = now - 4 * 24 * 60 * 60 * 1000; // 4 days in ms
 	useEffect(() => {
 		async function fetchPastData() {
-			const response = await axios.get(
-				`http://localhost:3000/api/trades/${asset}/${timeframeSec / 60}`
+			const response = await app_api.get(
+				`candles?asset=${asset}&startTime=${fourDaysAgo}&endTime=${now}&ts=${timeframeSec / 60}m`
 			);
-
+			console.log(response.data);
 			setPastData(
 				response.data.map((t: any) => ({
 					time: toUTCTimestamp(t.timestamp),
-					open: t.open_price,
-					high: t.high_price,
-					low: t.low_price,
-					close: t.close_price,
+					open: restoreValue(parseInt(t.open_price), 8),
+					high: restoreValue(parseInt(t.high_price), 8),
+					low: restoreValue(parseInt(t.low_price), 8),
+					close: restoreValue(parseInt(t.close_price), 8),
 				}))
 			);
 		}
@@ -68,11 +71,7 @@ export default function CandleChart({
 	}, [timeframeSec, asset]);
 
 	useEffect(() => {
-		if (
-			chartContainerRef.current &&
-			pastData.length > 0 &&
-			!chartInitialized.current
-		) {
+		if (chartContainerRef.current && pastData.length > 0 && !chartInitialized.current) {
 			const chart = createChart(chartContainerRef.current, createChartOption);
 			chartRef.current = chart;
 			const candleSeries = chart.addSeries(CandlestickSeries, {
@@ -90,15 +89,14 @@ export default function CandleChart({
 		}
 	}, [pastData]);
 
-	const liveData = useWss("ws://localhost:8080");
+	const liveData = useWss();
 	useEffect(() => {
 		if (!liveData || !candleSeriesRef.current) return;
 		const trade = liveData[asset as keyof Trade];
 		if (!trade) return;
 
 		const ts = toUTCTimestamp_Real();
-		const bucket = (Math.floor(ts / timeframeSec) *
-			timeframeSec) as UTCTimestamp;
+		const bucket = (Math.floor(ts / timeframeSec) * timeframeSec) as UTCTimestamp;
 
 		if (!lastCandleRef.current || lastCandleRef.current.time !== bucket) {
 			lastCandleRef.current = {
@@ -108,13 +106,8 @@ export default function CandleChart({
 				low: trade.price,
 				close: trade.price,
 			};
-			const lastBar = candleSeriesRef.current.dataByIndex(
-				candleSeriesRef.current.data().length - 1
-			);
-			if (
-				candleSeriesRef.current &&
-				lastCandleRef.current.time >= lastBar?.time!
-			) {
+			const lastBar = candleSeriesRef.current.dataByIndex(candleSeriesRef.current.data().length - 1);
+			if (candleSeriesRef.current && lastCandleRef.current.time >= lastBar?.time!) {
 				candleSeriesRef.current.update(lastCandleRef.current, false);
 			}
 		} else {
@@ -125,13 +118,8 @@ export default function CandleChart({
 				high: Math.max(lastCandleRef.current.high, trade.price),
 				low: Math.min(lastCandleRef.current.low, trade.price),
 			};
-			const lastBar = candleSeriesRef.current.dataByIndex(
-				candleSeriesRef.current.data().length - 1
-			);
-			if (
-				candleSeriesRef.current &&
-				lastCandleRef.current.time >= lastBar?.time!
-			) {
+			const lastBar = candleSeriesRef.current.dataByIndex(candleSeriesRef.current.data().length - 1);
+			if (candleSeriesRef.current && lastCandleRef.current.time >= lastBar?.time!) {
 				candleSeriesRef.current.update(lastCandleRef.current, false);
 			}
 		}

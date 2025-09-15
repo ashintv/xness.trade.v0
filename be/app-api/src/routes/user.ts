@@ -55,11 +55,13 @@ userRouter.post("/signin", (req, res) => {
 
 
 
+
+// DONE:EXTRA ;; returned loacked balance also
 userRouter.get("/balance", authMiddleware, (req, res) => {
 	const userId = req.userId;
 	const user = users_v0.find((u) => u.userId === userId);
 	if (!user) {
 		return res.status(404).json({ message: "User not found" });
 	}
-	return res.status(200).json({ usd_balance: user.balance.usd_balance });
+	return res.status(200).json({ balance: user.balance});
 });

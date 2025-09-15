@@ -9,11 +9,11 @@ import { selectTradesQuery } from '../config';
  */
 export const candleRouter = express.Router();
 const pool = new Pool({
-	host: "localhost",
-	port: 5432,
-	user: "postgres",
-	password: "pass",
-	database: "xness_v0",
+	user: process.env.POSTGRES_USER || "postgres", // default user
+	host: process.env.POSTGRES_HOST || "timescaledb", // Docker service name
+	database: process.env.POSTGRES_DB || "xnessdbdev", // default database
+	password: process.env.POSTGRES_PASSWORD || "pass", // default password
+	port: Number(process.env.POSTGRES_PORT) || 5432,
 });
 
 
@@ -23,7 +23,7 @@ candleRouter.get("/",async (req, res) => {
     if (!asset || !startTime || !endTime || !ts) {
         return res.status(400).json({ message: "Missing required query parameters" });
     }
-    const sql =  format.withArray(selectTradesQuery, ['trades_1m', "ADAUSDT", startTime, endTime]);
+    const sql =  format.withArray(selectTradesQuery, [`trades_${ts}`, asset, startTime, endTime]);
     const { rows } = await pool.query(sql);
     return res.json(rows);
 
