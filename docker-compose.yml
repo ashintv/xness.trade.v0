@@ -1,0 +1,91 @@
+services:
+  app_api:
+    image: ashintv/xness-api:latest   # pulled from Docker Hub
+    container_name: app-api
+    restart: always
+    depends_on:
+      - redis
+      - wss
+      - get_stream
+      - timescaledb
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: xnessdbdev
+      POSTGRES_HOST: timescaledb
+      POSTGRES_PORT: 5432
+      DATABASE_URL: "postgresql://postgres:pass@timescaledb:5432/xnessdbdev"
+      PRECISION: "8"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "3000:3000"
+    networks:
+      - app_net
+
+  wss:
+    image: ashintv/xness-wss:latest   # pulled from Docker Hub
+    container_name: wss
+    restart: always
+    depends_on:
+      - redis
+      - timescaledb
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "8080:8080"
+    networks:
+      - app_net
+
+  get_stream:
+    image: ashintv/xness-get_stream:latest   # pulled from Docker Hub
+    container_name: get_stream
+    restart: always
+    depends_on:
+      - redis
+      - timescaledb
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: xnessdbdev
+      POSTGRES_HOST: timescaledb
+      POSTGRES_PORT: 5432
+      DATABASE_URL: "postgresql://postgres:pass@timescaledb:5432/xnessdbdev"
+      PRECISION: "8"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    networks:
+      - app_net
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - app_net
+
+  timescaledb:
+    image: timescale/timescaledb:2.15.1-pg15
+    container_name: timescaledb
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: xnessdbdev
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d
+      - timescale_data:/var/lib/postgresql/data
+    networks:
+      - app_net
+
+volumes:
+  timescale_data:
+
+networks:
+  app_net:
+    driver: bridge

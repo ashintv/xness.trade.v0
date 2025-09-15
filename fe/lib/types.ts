@@ -1,17 +1,19 @@
 import { Balance } from "../componets/balance";
 
-export interface Order {
+export interface OpenOrder {
 	id: number;
 	asset: string;
-	status: "open" | "closed";
-	type: "long" | "short";
+	type: "buy" | "sell";
 	qty: number;
 	price: number;
 	OpenPrice: number;
-	ClosePrice: number;
-	pl: number;
 	takeProfit: number | null;
 	stopLoss: number | null;
+}
+
+interface ClosedOrder extends OpenOrder {
+	ClosePrice: number;
+	pl: number;
 }
 
 export interface Balance {
@@ -22,22 +24,22 @@ export interface Balance {
 export interface UserstoreState {
 	username: string;
 	setUsername: (username: string) => void;
-	
-} 
-
+}
 
 export interface BalanceState {
 	balance: Balance;
 	setBalance: (balance: Balance) => void;
 }
 
-export interface OrderStoreState {
-	orders: Order[];
-	setOrders: (orders: Order[]) => void;
+export interface OpenOrderState {
+	orders: OpenOrder[];
+	setOrders: (orders: OpenOrder[]) => void;
 }
 
-
-
+export interface ClosedOrderState {
+	orders: ClosedOrder[];
+	setOrders: (orders: ClosedOrder[]) => void;
+}
 
 export interface AssetData {
 	time: string;

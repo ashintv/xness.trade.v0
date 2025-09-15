@@ -5,8 +5,13 @@ import { storeValue } from "./heplers/decimal-converts";
 import { CHANNEL_V0, Decimals, query, query_V0, SPREAD } from "./config";
 import { batchPushToDb } from "./db";
 
-const redisUrl = "redis://localhost:6370";
-const publisher = createClient({ url: redisUrl });
+
+const publisher = createClient({
+	socket: {
+		host: process.env.REDIS_HOST || "localhost",
+		port: Number(process.env.REDIS_PORT!) || 6379,
+	},
+});
 
 const round2 = (num: number) => Math.round(num * 100) / 100;
 
@@ -46,30 +51,15 @@ const batch_v0: [
 ][] = [];
 
 let curr = 0;
-const client = new Client({
-	host: "localhost",
-	port: 5432,
-	user: "postgres",
-	password: "pass",
-	database: "xness",
-});
-/**
- * Connect to PostgreSQL for xness non accurate rounded values
- */
-async function connect() {
-	await client.connect();
-	console.log(
-		"✅ Connected to PostgreSQL for xness non accurate rounded values"
-	);
-}
-connect();
+
+
 
 const client_v0 = new Client({
-	host: "localhost",
-	port: 5432,
-	user: "postgres",
-	password: "pass",
-	database: "xness_v0",
+	user: process.env.POSTGRES_USER || "postgres",
+	host: process.env.POSTGRES_HOST || "timescaledb", // must be "timescaledb"
+	database: process.env.POSTGRES_DB || "xnessdbdev",
+	password: process.env.POSTGRES_PASSWORD || "pass",
+	port: Number(process.env.POSTGRES_PORT) || 5432,
 });
 
 /**
@@ -77,9 +67,7 @@ const client_v0 = new Client({
  */
 async function connect_v0() {
 	await client_v0.connect();
-	console.log(
-		"✅ Connected to PostgreSQL for xness_v0 accurate integer values"
-	);
+	console.log("✅ Connected to PostgreSQL for xness_v0 accurate integer values");
 }
 connect_v0();
 
@@ -89,13 +77,9 @@ wss.on("open", () => {
 });
 
 wss.on("message", async (event) => {
-	
 	const data = event.toString();
 	const parsed = JSON.parse(data);
-	const ts = new Date(Number(parsed.data.T))
-		.toISOString()
-		.replace("T", " ")
-		.replace("Z", "");
+	const ts = new Date(Number(parsed.data.T)).toISOString().replace("T", " ").replace("Z", "");
 	const raw_price = parsed.data.p;
 	const decimal = Decimals[parsed.data.s as keyof typeof Decimals];
 	console.log("Received message from WebSocket", parsed.data.T);
@@ -135,22 +119,16 @@ wss.on("error", (error) => {
 	console.error("WebSocket error:", error);
 });
 
-
 const intervel = setInterval(async () => {
 	console.log(`Flushing ${batch_v0.length} trades to DB...`);
-	const filters_batchV0 = batch_v0.filter((row) =>
-		row.every((val) => val !== undefined && val !== null)
-	);
-	const filteres_batch = batch.filter((row) =>
-		row.every((val) => val !== undefined && val !== null)
-	);
+	const filters_batchV0 = batch_v0.filter((row) => row.every((val) => val !== undefined && val !== null));
+	const filteres_batch = batch.filter((row) => row.every((val) => val !== undefined && val !== null));
 	if (filteres_batch.length === 0 || filters_batchV0.length === 0) {
 		console.log("No valid trades to flush");
 		console.log("V0", filteres_batch);
 		console.log("V1", filters_batchV0);
 		return;
 	}
-	await batchPushToDb(client, query, batch);
 	await batchPushToDb(client_v0, query_V0, batch_v0);
 	batch.length = 0;
 	batch_v0.length = 0;

@@ -58,4 +58,6 @@ export interface NotificationType {
 	orderId: string;
 }
 
+
+
 export type OpenOrderRequest = z.infer<typeof openTradeSchema>;

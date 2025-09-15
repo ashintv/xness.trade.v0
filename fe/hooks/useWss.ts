@@ -1,24 +1,22 @@
-import { Trade  } from './../lib/types';
-"use client";
+'use client'
+import { restoreValue } from "../lib/utils/RoundN";
+import { Trade } from "./../lib/types";
 import { useEffect, useState, useRef } from "react";
-import { AssetData } from "../lib/types";
 
-
-
-export function useWss(url: string) {
+export function useWss() {
 	const [price, setPrice] = useState<Trade>({});
-	const prev = useRef<Trade >({});
+	const prev = useRef<Trade>({});
 	useEffect(() => {
-		const socket = new WebSocket(url);
+		const socket = new WebSocket(process.env.WSS_URL || "ws://localhost:8081");
 		socket.onmessage = (event) => {
 			const message = JSON.parse(event.data);
 			const asset = message?.asset;
-			const price = message?.price;
-			const ts = message?.ts;
-			const ask = message?.ask;
-			const bid = message?.bid;
-			const previousAsk = prev.current?.[asset as keyof Trade]?.ask || 0;
-			const previousBid = prev.current?.[asset as keyof Trade]?.bid || 0;
+			const price = restoreValue(message?.price, message.decimal);
+			const ts = restoreValue(message?.ts, message.decimal);
+			const ask = restoreValue(message?.ask, message.decimal);
+			const bid = restoreValue(message?.bid, message.decimal);
+			const previousAsk = restoreValue(prev.current?.[asset as keyof Trade]?.ask || 0, message.decimal);
+			const previousBid = restoreValue(prev.current?.[asset as keyof Trade]?.bid || 0, message.decimal);
 			const curr = {
 				time: new Date(ts).toLocaleTimeString(),
 				asset,
@@ -29,22 +27,20 @@ export function useWss(url: string) {
 				profitBid: previousBid ? bid - previousBid : 0,
 			};
 
-
 			setPrice((prev) => ({
 				...prev,
-				[asset]: curr
+				[asset]: curr,
 			}));
 
 			prev.current = {
 				...prev.current,
-				[asset]: curr
+				[asset]: curr,
 			};
 		};
 
 		return () => {
 			socket.close();
 		};
-	}, [url]);
+	}, []);
 	return price;
 }
-

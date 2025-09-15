@@ -13,6 +13,7 @@ eventsRouter.get("/", authMiddleware, (req, res) => {
 		return res.status(404).json({ message: "User not found" });
 	}
     user.res = res
+	user.res.write("data: " + JSON.stringify({ message: "Connected to SSE" }) + "\n\n");
 	req.on('close',()=>{
 		user.res = undefined
 		res.end()
