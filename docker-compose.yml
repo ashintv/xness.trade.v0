@@ -1,6 +1,6 @@
 services:
   app_api:
-    image: ashintv/xness-api:latest   # pulled from Docker Hub
+    image: ashintv/xness-api:v1.0   # pulled from Docker Hub
     container_name: app-api
     restart: always
     depends_on:
@@ -24,7 +24,7 @@ services:
       - app_net
 
   wss:
-    image: ashintv/xness-wss:latest   # pulled from Docker Hub
+    image: ashintv/xness-wss:v1.0   # pulled from Docker Hub
     container_name: wss
     restart: always
     depends_on:
@@ -39,7 +39,7 @@ services:
       - app_net
 
   get_stream:
-    image: ashintv/xness-get_stream:latest   # pulled from Docker Hub
+    image: ashintv/xness-get_stream:v1.0   # pulled from Docker Hub
     container_name: get_stream
     restart: always
     depends_on:
